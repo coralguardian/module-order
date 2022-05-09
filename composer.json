@@ -1,0 +1,20 @@
+{
+    "name": "d4rk0snet/coral-order",
+    "description": "Plugin métier pour la gestion des commandes/paiement au sein de l'association de préservation des coraux Coral-Guardian",
+    "type": "plugin",
+    "autoload": {
+        "psr-4": {
+            "D4rk0snet\\CoralOrder\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Grégory COLLIN",
+            "email": "gregory@d4rk0s.net"
+        }
+    ],
+    "require": {
+        "ramsey/uuid": "^4",
+        "stripe/stripe-php": "^7"
+    }
+}
