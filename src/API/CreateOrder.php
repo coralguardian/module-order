@@ -59,11 +59,14 @@ class CreateOrder extends APIEnpointAbstract
             );
         }
 
-        $hasMonthlyDonation = count(array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donation) {
-            return $donation->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
-        })) >= 1;
+        $needFutureUsage = false;
+        if($orderModel->getDonationOrdered() !== null) {
+            $needFutureUsage = count(array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donation) {
+                    return $donation->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
+                })) >= 1;
+        }
 
-        $paymentIntent = StripeService::createPaymentIntent($total,$stripeCustomer->id, $orderModel->jsonSerialize(), $hasMonthlyDonation);
+        $paymentIntent = StripeService::createPaymentIntent($total,$stripeCustomer->id, $orderModel->jsonSerialize(), $needFutureUsage);
 
         } catch (\Exception $exception) {
             return APIManagement::APIError($exception->getMessage(), 400);
