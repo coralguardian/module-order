@@ -8,6 +8,7 @@ class Plugin
 {
     public static function launchActions()
     {
+        die('ok');
         do_action(\Hyperion\RestAPI\Plugin::ADD_API_ENDPOINT_ACTION, new CreateOrder());
     }
 }

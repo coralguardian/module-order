@@ -9,3 +9,5 @@
  * Author URI:
  * Licence: GPLv2
  */
+
+add_action('plugins_loaded', [\D4rk0snet\CoralOrder\Plugin::class,'launchActions']);
