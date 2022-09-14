@@ -49,11 +49,17 @@ class OrderModel implements \JsonSerializable
         return $this;
     }
 
+    /**
+     * @return \D4rk0snet\CoralOrder\Model\ProductOrderModel[]
+     */
     public function getProductsOrdered(): array
     {
         return $this->productsOrdered;
     }
 
+    /**
+     * @param \D4rk0snet\CoralOrder\Model\ProductOrderModel[]
+     */
     public function setProductsOrdered(array $productsOrdered): OrderModel
     {
         $this->productsOrdered = $productsOrdered;
@@ -71,11 +77,17 @@ class OrderModel implements \JsonSerializable
         return $this;
     }
 
-    public function getDonationOrdered(): array
+    /**
+     * @return \D4rk0snet\CoralOrder\Model\DonationOrderModel[]
+     */
+    public function getDonationOrdered(): ?array
     {
         return $this->donationOrdered;
     }
 
+    /**
+     * @param \D4rk0snet\CoralOrder\Model\DonationOrderModel[]
+     */
     public function setDonationOrdered(array $donationOrdered): OrderModel
     {
         $this->donationOrdered = $donationOrdered;
