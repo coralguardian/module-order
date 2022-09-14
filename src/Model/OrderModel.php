@@ -60,7 +60,7 @@ class OrderModel implements \JsonSerializable
         return $this;
     }
 
-    public function getTotalAmount(): float
+    public function getTotalAmount(): ?float
     {
         return $this->totalAmount;
     }
