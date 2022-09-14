@@ -4,8 +4,8 @@ namespace D4rk0snet\CoralOrder\Model;
 
 class OrderModel implements \JsonSerializable
 {
-    private ?CompanyCustomerModel $companyCustomerModel = null;
-    private ?IndividualCustomerModel $individualCustomerModel = null;
+    /** @required  */
+    private CustomerModel $customer;
     /** @var ProductOrderModel[] */
     private ?array $productsOrdered = null;
     /** @var DonationOrderModel[] */
@@ -14,10 +14,6 @@ class OrderModel implements \JsonSerializable
 
     public function afterMapping()
     {
-        if($this->getCompanyCustomerModel() === null && $this->getIndividualCustomerModel() === null) {
-            throw new \Exception("A customer is required");
-        }
-
         if($this->getProductsOrdered() === null && $this->getDonationOrdered() === null) {
             throw new \Exception("products or donations are required");
         }
@@ -27,25 +23,14 @@ class OrderModel implements \JsonSerializable
         }
     }
 
-    public function getCompanyCustomerModel(): ?CompanyCustomerModel
+    public function getCustomer(): CustomerModel
     {
-        return $this->companyCustomerModel;
+        return $this->customer;
     }
 
-    public function setCompanyCustomerModel(?CompanyCustomerModel $companyCustomerModel): OrderModel
+    public function setCustomer(CustomerModel $customer): OrderModel
     {
-        $this->companyCustomerModel = $companyCustomerModel;
-        return $this;
-    }
-
-    public function getIndividualCustomerModel(): ?IndividualCustomerModel
-    {
-        return $this->individualCustomerModel;
-    }
-
-    public function setIndividualCustomerModel(?IndividualCustomerModel $individualCustomerModel): OrderModel
-    {
-        $this->individualCustomerModel = $individualCustomerModel;
+        $this->customer = $customer;
         return $this;
     }
 

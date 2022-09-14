@@ -2,6 +2,7 @@
 
 namespace D4rk0snet\CoralOrder\API;
 
+use D4rk0snet\Coralguardian\Enums\CustomerType;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
 use D4rk0snet\CoralOrder\Model\OrderModel;
 use D4rk0snet\CoralOrder\Model\ProductOrderModel;
@@ -41,8 +42,8 @@ class CreateOrder extends APIEnpointAbstract
         }
 
         $total = self::computeTotalPrice($orderModel);
-        if($orderModel->getIndividualCustomerModel()) {
-            $customer = $orderModel->getIndividualCustomerModel();
+        $customer = $orderModel->getCustomer();
+        if($orderModel->getCustomer()->getCustomerType() === CustomerType::INDIVIDUAL) {
             $stripeCustomer = CustomerService::getOrCreateIndividualCustomer(
                 email: $customer->getEmail(),
                 firstName: $customer->getFirstname(),
@@ -50,7 +51,6 @@ class CreateOrder extends APIEnpointAbstract
                 metadata: $customer->jsonSerialize()
             );
         } else {
-            $customer = $orderModel->getCompanyCustomerModel();
             $stripeCustomer = CustomerService::getOrCreateCompanyCustomer(
                 email: $customer->getEmail(),
                 companyName: $customer->getCompanyName(),
@@ -66,7 +66,7 @@ class CreateOrder extends APIEnpointAbstract
                 })) >= 1;
         }
 
-        $paymentIntent = StripeService::createPaymentIntent($total,$stripeCustomer->id, $orderModel->jsonSerialize(), $needFutureUsage);
+        $paymentIntent = StripeService::createPaymentIntent($total,$stripeCustomer->id, ["model" => json_encode($orderModel)], $needFutureUsage);
 
         } catch (\Exception $exception) {
             return APIManagement::APIError($exception->getMessage(), 400);
