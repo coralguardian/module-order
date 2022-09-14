@@ -6,9 +6,10 @@ class OrderModel implements \JsonSerializable
 {
     private ?CompanyCustomerModel $companyCustomerModel = null;
     private ?IndividualCustomerModel $individualCustomerModel = null;
+    /** @var ProductOrderModel[] */
     private ?array $productsOrdered = null;
+    /** @var DonationOrderModel[] */
     private ?array $donationOrdered = null;
-    /** @required */
     private ?float $totalAmount = null;
 
     public function afterMapping()
