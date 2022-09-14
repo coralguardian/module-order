@@ -189,10 +189,14 @@ class CustomerModel implements \JsonSerializable
         return $this->customerType;
     }
 
-    public function setCustomerType(CustomerType $customerType): CustomerModel
+    public function setCustomerType(string $customerType): CustomerModel
     {
-        $this->customerType = $customerType;
-        return $this;
+        try {
+            $this->customerType = CustomerType::from($customerType);
+            return $this;
+        } catch (\ValueError $exception) {
+            throw new \Exception("CustomerType invalide",400);
+        }
     }
 
     public function getAlternateNewsletterEmail(): ?string
