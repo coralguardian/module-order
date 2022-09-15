@@ -20,7 +20,7 @@ class PaymentSuccessListener
             $mapper->bExceptionOnMissingData = true;
             $mapper->postMappingMethod = 'afterMapping';
             /** @var OrderModel $orderModel */
-            $orderModel = $mapper->map($stripePaymentIntent->metadata['model'], new OrderModel());
+            $orderModel = $mapper->mapArray($stripePaymentIntent->metadata['model'], new OrderModel());
         } catch(Exception $exception)
         {}
 

@@ -104,21 +104,26 @@ class OrderModel implements \JsonSerializable
     {
         $result = [];
 
+        $result['customer'] = $this->getCustomer()->jsonSerialize();
+
         if($this->getProductsOrdered()) {
-            $result['products'] = [];
+            $result['productsOrdered'] = [];
             /** @var ProductOrderModel $product */
             foreach($this->getProductsOrdered() as $product) {
-                $result['products'][] = $product->jsonSerialize();
+                $result['productsOrdered'][] = $product->jsonSerialize();
             }
         }
 
         if($this->getDonationOrdered()) {
-            $result['donations'] = [];
+            $result['donationOrdered'] = [];
             /** @var DonationOrderModel $donation */
             foreach($this->getDonationOrdered() as $donation) {
-                $result['donations'][] = $donation->jsonSerialize();
+                $result['donationOrdered'][] = $donation->jsonSerialize();
             }
         }
+
+        $result['paymentMethod'] = $this->getPaymentMethod()->value;
+        $result['totalAmount'] = $this->getTotalAmount();
 
         return $result;
     }

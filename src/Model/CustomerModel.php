@@ -213,8 +213,8 @@ class CustomerModel implements \JsonSerializable
     public function jsonSerialize()
     {
         $returnedValues = [
-            "firstName" => $this->getFirstname(),
-            "lastName" => $this->getLastname(),
+            "firstname" => $this->getFirstname(),
+            "lastname" => $this->getLastname(),
             "address" => $this->getAddress(),
             "postalCode" => $this->getPostalCode(),
             "city" => $this->getCity(),
@@ -222,12 +222,12 @@ class CustomerModel implements \JsonSerializable
             "email" => $this->getEmail(),
             "wantsNewsletter" => $this->wantsNewsletter(),
             "language" => $this->getLanguage()->value,
-            "customer_type" => $this->getCustomerType()->value
+            "customerType" => $this->getCustomerType()->value
         ];
 
         if($this->getCustomerType() === CustomerType::COMPANY) {
-            $returnedValues["company_name"] = $this->getCompanyName();
-            $returnedValues["alternate_newsletter_email"] = $this->getAlternateNewsletterEmail();
+            $returnedValues["companyName"] = $this->getCompanyName();
+            $returnedValues["alternateNewsletterEmail"] = $this->getAlternateNewsletterEmail();
         }
 
         return $returnedValues;
