@@ -110,7 +110,7 @@ class CreateOrder extends APIEnpointAbstract
         // Produits
         array_map(
             static function(ProductOrderModel $productOrderModel) use (&$totalToPay) {
-                $totalToPay += self::getDefaultProductPrice($productOrderModel->getKey(), $productOrderModel->getProject());
+                $totalToPay += self::getDefaultProductPrice($productOrderModel->getKey(), $productOrderModel->getProject()) * $productOrderModel->getQuantity();
             },
             $orderModel->getProductsOrdered(),
         );
