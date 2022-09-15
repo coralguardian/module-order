@@ -2,18 +2,18 @@
 
 namespace D4rk0snet\CoralOrder\API;
 
-use D4rk0snet\Coralguardian\Enums\CustomerType;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
 use D4rk0snet\CoralOrder\Model\OrderModel;
 use D4rk0snet\CoralOrder\Model\ProductOrderModel;
+use D4rk0snet\CoralOrder\Service\CustomerStripeService;
 use D4rk0snet\Donation\Enums\DonationRecurrencyEnum;
+use D4rk0snet\Donation\Enums\PaymentMethod;
 use Hyperion\RestAPI\APIEnpointAbstract;
 use Hyperion\RestAPI\APIManagement;
 use Hyperion\Stripe\Model\ProductSearchModel;
-use Hyperion\Stripe\Service\CustomerService;
-use Hyperion\Stripe\Service\SearchService;
 use Hyperion\Stripe\Service\StripeService;
 use JsonMapper;
+use Stripe\Product;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -38,39 +38,32 @@ class CreateOrder extends APIEnpointAbstract
                 throw new \Exception("totalPrice is below required for the total order amount");
             }
 
-            $total = self::computeTotalPrice($orderModel);
-            $customer = $orderModel->getCustomer();
-            if($orderModel->getCustomer()->getCustomerType() === CustomerType::INDIVIDUAL) {
-                $stripeCustomer = CustomerService::getOrCreateIndividualCustomer(
-                    email: $customer->getEmail(),
-                    firstName: $customer->getFirstname(),
-                    lastName: $customer->getLastname(),
-                    metadata: $customer->jsonSerialize()
-                );
-            } else {
-                $stripeCustomer = CustomerService::getOrCreateCompanyCustomer(
-                    email: $customer->getEmail(),
-                    companyName: $customer->getCompanyName(),
-                    mainContactName: $customer->getFirstname(),
-                    metadata: $customer->jsonSerialize()
-                );
+            // Si c'est un virement bancaire on force la création du user / update
+            // @todo: A fixer quand on aura un workflow offchain avec stripe ou on pourra passer les virements.
+            if($orderModel->getPaymentMethod() === PaymentMethod::BANK_TRANSFER) {
+                CustomerStripeService::getOrCreateCustomer($orderModel);
+                return APIManagement::APIOk();
             }
 
-            // Met a jour le customer si les metadata sont différentes (adresse différente par exemple)
-            if($stripeCustomer->metadata->toArray() !== $customer->jsonSerialize()) {
-                CustomerService::updateCustomerMetadata($stripeCustomer, $customer->jsonSerialize());
+            // Création du paymentIntent non rattaché à un client.
+            $needFutureUsage = count(array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donation) {
+                    return $donation->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
+                })) >= 1;
+
+            $paymentIntentParams = [
+                'amount' =>  self::computeTotalPrice($orderModel) * 100,
+                'currency' => 'eur',
+                'payment_method_types' => ['card'],
+                'metadata' => [
+                    "model" => json_encode($orderModel, JSON_THROW_ON_ERROR)
+                ],
+            ];
+
+            if ($needFutureUsage) {
+                $paymentIntentParams['setup_future_usage'] = 'off_session';
             }
 
-            $needFutureUsage = false;
-            if($orderModel->getDonationOrdered() !== null) {
-                $needFutureUsage = count(array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donation) {
-                        return $donation->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
-                    })) >= 1;
-            }
-
-            $paymentIntent = StripeService::createPaymentIntent($total,$stripeCustomer->id, [
-                "model" => json_encode($orderModel)
-            ], $needFutureUsage);
+            $paymentIntent = StripeService::getStripeClient()->paymentIntents->create($paymentIntentParams);
 
         } catch (\Exception $exception) {
             return APIManagement::APIError($exception->getMessage(), 400);
@@ -79,6 +72,98 @@ class CreateOrder extends APIEnpointAbstract
         return APIManagement::APIOk([
             "clientSecret" => $paymentIntent->client_secret
         ]);
+    }
+
+    /**
+     * If there is products in the order, then check that the amount wanted to be paid is enough
+     *
+     * @param OrderModel $orderModel
+     * @throws \Stripe\Exception\ApiErrorException
+     * @return bool
+     */
+    private static function checkPriceConsistency(OrderModel $orderModel) : bool
+    {
+        $totalProductPriceToPay = 0;
+
+        // Produits
+        array_map(
+            static function(ProductOrderModel $productOrderModel) use (&$totalProductPriceToPay) {
+                $totalProductPriceToPay += self::getDefaultProductPrice($productOrderModel->getKey(), $productOrderModel->getProject());
+            },
+            $orderModel->getProductsOrdered(),
+        );
+
+        return $orderModel->getTotalAmount() >= $totalProductPriceToPay;
+    }
+
+    /**
+     * Compute the total order price for the paymentIntent
+     *
+     * @param OrderModel $orderModel
+     * @throws \Stripe\Exception\ApiErrorException
+     * @return float
+     */
+    private static function computeTotalPrice(OrderModel $orderModel) : float
+    {
+        $totalToPay = 0;
+
+        // Produits
+        array_map(
+            static function(ProductOrderModel $productOrderModel) use (&$totalToPay) {
+                $totalToPay += self::getDefaultProductPrice($productOrderModel->getKey(), $productOrderModel->getProject());
+            },
+            $orderModel->getProductsOrdered(),
+        );
+
+        // Dons
+        array_map(
+            static function(DonationOrderModel $donationOrderModel) use (&$totalToPay) {
+                $totalToPay += $donationOrderModel->getAmount();
+            },
+            $orderModel->getDonationOrdered()
+        );
+
+        return $totalToPay;
+    }
+
+    /**
+     * Retrieve the default product price
+     *
+     * @param string $productKey
+     * @param string $project
+     * @throws \Stripe\Exception\ApiErrorException
+     * @return float|null
+     */
+    private static function getDefaultProductPrice(string $productKey, string $project) : ?float
+    {
+        $stripeProductSearchModel = new ProductSearchModel(
+            active: true,
+            metadata: [
+                'key' => $productKey,
+                'project' => $project
+            ]
+        );
+
+        $searchResult = StripeService::getStripeClient()
+            ->products
+            ->search(['query' => (string) $stripeProductSearchModel, 'expand' => 'default_price']);
+
+        if($searchResult->count() === 0) {
+            return null;
+        }
+
+        if($searchResult->count() > 1) {
+            throw new \Exception("Multiple products match the research !");
+        }
+
+        /** @var Product $stripeProduct */
+        $stripeProduct = current($searchResult->data);
+
+        if($stripeProduct->default_price === null) {
+            throw new \Exception("Product ".$stripeProduct->id." doesn't have a default price");
+        }
+
+        return $stripeProduct->default_price->unit_amount / 100;
     }
 
     public static function getMethods(): array
@@ -94,60 +179,5 @@ class CreateOrder extends APIEnpointAbstract
     public static function getEndpoint(): string
     {
         return "createOrder";
-    }
-
-    private static function checkPriceConsistency(OrderModel $orderModel) : bool
-    {
-        $totalProductPriceToPay = 0;
-
-        if($orderModel->getProductsOrdered()) {
-            /** @var ProductOrderModel $product */
-            $totalProductPriceToPay += self::getProductsTotalToPay($orderModel);
-        } else {
-            throw new \Exception("No products ordered for checkPriceConsistency");
-        }
-
-        return $orderModel->getTotalAmount() >= $totalProductPriceToPay;
-    }
-
-    private static function computeTotalPrice(OrderModel $orderModel) : float
-    {
-        $totalToPay = 0;
-
-        if($orderModel->getProductsOrdered()) {
-            /** @var ProductOrderModel $product */
-            $totalToPay += self::getProductsTotalToPay($orderModel);
-        }
-
-        if($orderModel->getDonationOrdered()) {
-            /** @var DonationOrderModel $donation */
-            foreach($orderModel->getDonationOrdered() as $donation) {
-                $totalToPay += $donation->getAmount();
-            }
-        }
-
-        return $totalToPay;
-    }
-
-    private static function getProductsTotalToPay(OrderModel $orderModel): float
-    {
-        $productPriceAmount = 0;
-
-        foreach ($orderModel->getProductsOrdered() as $product) {
-            $productSearch = (new ProductSearchModel)
-                ->setActive(true)
-                ->addMetadata(['key' => $product->getKey()]);
-            $searchResults = SearchService::searchProduct($productSearch);
-            if (count($searchResults->data) === 0) {
-                throw new \Exception("Product with " . $product->getKey() . " key is not found");
-            }
-
-            $stripeProduct = current($searchResults->data);
-            $stripePrice = SearchService::getPrice($stripeProduct->default_price);
-
-            $productPriceAmount += $stripePrice->unit_amount / 100;
-        }
-
-        return $productPriceAmount;
     }
 }

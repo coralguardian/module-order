@@ -16,6 +16,9 @@ class DonationOrderModel implements \JsonSerializable
      */
     private DonationRecurrencyEnum $donationRecurrency;
 
+    /** @required */
+    private string $project;
+
     public function afterMapping()
     {
         if($this->getAmount() <= 0) {
@@ -45,11 +48,23 @@ class DonationOrderModel implements \JsonSerializable
         return $this;
     }
 
+    public function getProject(): string
+    {
+        return $this->project;
+    }
+
+    public function setProject(string $project): DonationOrderModel
+    {
+        $this->project = $project;
+        return $this;
+    }
+
     public function jsonSerialize()
     {
         return [
             'amount' => $this->getAmount(),
-            'recurrency' => $this->getDonationRecurrency()->value
+            'recurrency' => $this->getDonationRecurrency()->value,
+            'project' => $this->getProject()
         ];
     }
 }

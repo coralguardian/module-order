@@ -10,6 +10,9 @@ class ProductOrderModel implements \JsonSerializable
     /** @required */
     private int $quantity;
 
+    /** @required */
+    private string $project;
+
     public function afterMapping()
     {
         if($this->getQuantity() < 1) {
@@ -39,11 +42,23 @@ class ProductOrderModel implements \JsonSerializable
         return $this;
     }
 
+    public function getProject(): string
+    {
+        return $this->project;
+    }
+
+    public function setProject(string $project): ProductOrderModel
+    {
+        $this->project = $project;
+        return $this;
+    }
+
     public function jsonSerialize()
     {
         return [
             'key' => $this->getKey(),
-            'quantity' => $this->getQuantity()
+            'quantity' => $this->getQuantity(),
+            'project' => $this->getProject()
         ];
     }
 }

@@ -2,14 +2,19 @@
 
 namespace D4rk0snet\CoralOrder\Model;
 
+use D4rk0snet\Donation\Enums\PaymentMethod;
+use Exception;
+
 class OrderModel implements \JsonSerializable
 {
     /** @required  */
     private CustomerModel $customer;
     /** @var ProductOrderModel[] */
-    private ?array $productsOrdered = null;
+    private array $productsOrdered = [];
     /** @var DonationOrderModel[] */
-    private ?array $donationOrdered = null;
+    private array $donationOrdered = [];
+    /** @required */
+    private PaymentMethod $paymentMethod;
     private ?float $totalAmount = null;
 
     public function afterMapping()
@@ -65,7 +70,7 @@ class OrderModel implements \JsonSerializable
     /**
      * @return \D4rk0snet\CoralOrder\Model\DonationOrderModel[]
      */
-    public function getDonationOrdered(): ?array
+    public function getDonationOrdered(): array
     {
         return $this->donationOrdered;
     }
@@ -77,6 +82,22 @@ class OrderModel implements \JsonSerializable
     {
         $this->donationOrdered = $donationOrdered;
         return $this;
+    }
+
+    public function getPaymentMethod(): PaymentMethod
+    {
+        return $this->paymentMethod;
+    }
+
+    public function setPaymentMethod(string $paymentMethod): OrderModel
+    {
+        try {
+            $this->paymentMethod = PaymentMethod::from($paymentMethod);
+
+            return $this;
+        } catch (\ValueError $exception) {
+            throw new Exception("Invalid payment method value");
+        }
     }
 
     public function jsonSerialize()
