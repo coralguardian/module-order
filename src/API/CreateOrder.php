@@ -19,8 +19,6 @@ use WP_REST_Response;
 
 class CreateOrder extends APIEnpointAbstract
 {
-    public const GIFT_ADOPTION_UUID_PARAM = "adoption_uuid";
-
     public static function callback(WP_REST_Request $request): WP_REST_Response
     {
         $payload = json_decode($request->get_body(), false, 512, JSON_THROW_ON_ERROR);
@@ -35,38 +33,44 @@ class CreateOrder extends APIEnpointAbstract
             /** @var OrderModel $orderModel */
             $orderModel = $mapper->map($payload, new OrderModel());
 
+            // On vérifie si le prix est cohérent
+            if($orderModel->getProductsOrdered() !== null && !self::checkPriceConsistency($orderModel)) {
+                throw new \Exception("totalPrice is below required for the total order amount");
+            }
 
-        // On vérifie si le prix est cohérent
-        if($orderModel->getProductsOrdered() !== null && !self::checkPriceConsistency($orderModel)) {
-            throw new \Exception("totalPrice is below required for the total order amount");
-        }
+            $total = self::computeTotalPrice($orderModel);
+            $customer = $orderModel->getCustomer();
+            if($orderModel->getCustomer()->getCustomerType() === CustomerType::INDIVIDUAL) {
+                $stripeCustomer = CustomerService::getOrCreateIndividualCustomer(
+                    email: $customer->getEmail(),
+                    firstName: $customer->getFirstname(),
+                    lastName: $customer->getLastname(),
+                    metadata: $customer->jsonSerialize()
+                );
+            } else {
+                $stripeCustomer = CustomerService::getOrCreateCompanyCustomer(
+                    email: $customer->getEmail(),
+                    companyName: $customer->getCompanyName(),
+                    mainContactName: $customer->getFirstname(),
+                    metadata: $customer->jsonSerialize()
+                );
+            }
 
-        $total = self::computeTotalPrice($orderModel);
-        $customer = $orderModel->getCustomer();
-        if($orderModel->getCustomer()->getCustomerType() === CustomerType::INDIVIDUAL) {
-            $stripeCustomer = CustomerService::getOrCreateIndividualCustomer(
-                email: $customer->getEmail(),
-                firstName: $customer->getFirstname(),
-                lastName: $customer->getLastname(),
-                metadata: $customer->jsonSerialize()
-            );
-        } else {
-            $stripeCustomer = CustomerService::getOrCreateCompanyCustomer(
-                email: $customer->getEmail(),
-                companyName: $customer->getCompanyName(),
-                mainContactName: $customer->getFirstname(),
-                metadata: $customer->jsonSerialize()
-            );
-        }
+            // Met a jour le customer si les metadata sont différentes (adresse différente par exemple)
+            if($stripeCustomer->metadata->toArray() !== $customer->jsonSerialize()) {
+                CustomerService::updateCustomerMetadata($stripeCustomer, $customer->jsonSerialize());
+            }
 
-        $needFutureUsage = false;
-        if($orderModel->getDonationOrdered() !== null) {
-            $needFutureUsage = count(array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donation) {
-                    return $donation->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
-                })) >= 1;
-        }
+            $needFutureUsage = false;
+            if($orderModel->getDonationOrdered() !== null) {
+                $needFutureUsage = count(array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donation) {
+                        return $donation->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
+                    })) >= 1;
+            }
 
-        $paymentIntent = StripeService::createPaymentIntent($total,$stripeCustomer->id, ["model" => json_encode($orderModel)], $needFutureUsage);
+            $paymentIntent = StripeService::createPaymentIntent($total,$stripeCustomer->id, [
+                "model" => json_encode($orderModel)
+            ], $needFutureUsage);
 
         } catch (\Exception $exception) {
             return APIManagement::APIError($exception->getMessage(), 400);
