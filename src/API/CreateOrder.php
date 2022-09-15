@@ -146,7 +146,7 @@ class CreateOrder extends APIEnpointAbstract
 
         $searchResult = StripeService::getStripeClient()
             ->products
-            ->search(['query' => (string) $stripeProductSearchModel, 'expand' => 'default_price']);
+            ->search(['query' => (string) $stripeProductSearchModel]);
 
         if($searchResult->count() === 0) {
             return null;
@@ -163,7 +163,9 @@ class CreateOrder extends APIEnpointAbstract
             throw new \Exception("Product ".$stripeProduct->id." doesn't have a default price");
         }
 
-        return $stripeProduct->default_price->unit_amount / 100;
+        $stripeProductPrice = StripeService::getStripeClient()->prices->retrieve($stripeProduct->default_price);
+
+        return $stripeProductPrice->unit_amount / 100;
     }
 
     public static function getMethods(): array
