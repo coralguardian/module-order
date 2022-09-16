@@ -12,5 +12,16 @@
             "name": "Grégory COLLIN",
             "email": "gregory@d4rk0s.net"
         }
-    ]
+    ],
+    "repositories": [
+      {
+        "type" : "vcs",
+        "url": "git@github.com:ds-hyperion/stripe.git",
+        "no-api": true
+      }
+    ],
+    "require" :
+      {
+        "hyperion/stripe": "dev/dev"
+      }
 }

@@ -2,6 +2,7 @@
 
 namespace D4rk0snet\CoralOrder\Model;
 
+use D4rk0snet\Coralguardian\Enums\Language;
 use D4rk0snet\Donation\Enums\PaymentMethod;
 use Exception;
 
@@ -15,6 +16,8 @@ class OrderModel implements \JsonSerializable
     private array $donationOrdered = [];
     /** @required */
     private PaymentMethod $paymentMethod;
+    /** @required */
+    private Language $language;
     private ?float $totalAmount = null;
 
     public function afterMapping()
@@ -100,6 +103,21 @@ class OrderModel implements \JsonSerializable
         }
     }
 
+    public function getLanguage(): Language
+    {
+        return $this->language;
+    }
+
+    public function setLanguage(string $language): OrderModel
+    {
+        try {
+            $this->language = Language::from($language);
+            return $this;
+        } catch (\ValueError $exception) {
+            throw new Exception("Invalid language value");
+        }
+    }
+
     public function jsonSerialize()
     {
         $result = [];
@@ -124,6 +142,7 @@ class OrderModel implements \JsonSerializable
 
         $result['paymentMethod'] = $this->getPaymentMethod()->value;
         $result['totalAmount'] = $this->getTotalAmount();
+        $result['language'] = $this->getLanguage()->value;
 
         return $result;
     }

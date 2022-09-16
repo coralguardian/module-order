@@ -2,12 +2,15 @@
 
 namespace D4rk0snet\CoralOrder\API;
 
+use D4rk0snet\Coralguardian\Event\BankTransferPayment;
+use D4rk0snet\CoralOrder\Event\CoralOrderEvents;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
 use D4rk0snet\CoralOrder\Model\OrderModel;
 use D4rk0snet\CoralOrder\Model\ProductOrderModel;
 use D4rk0snet\CoralOrder\Service\CustomerStripeService;
 use D4rk0snet\Donation\Enums\DonationRecurrencyEnum;
 use D4rk0snet\Donation\Enums\PaymentMethod;
+use Hyperion\Doctrine\Service\DoctrineService;
 use Hyperion\RestAPI\APIEnpointAbstract;
 use Hyperion\RestAPI\APIManagement;
 use Hyperion\Stripe\Model\ProductSearchModel;
@@ -40,8 +43,8 @@ class CreateOrder extends APIEnpointAbstract
 
             $stripeCustomer = CustomerStripeService::getOrCreateCustomer($orderModel);
 
-            // @todo: A fixer quand on aura un workflow offchain avec stripe ou on pourra passer les virements.
             if($orderModel->getPaymentMethod() === PaymentMethod::BANK_TRANSFER) {
+                do_action(CoralOrderEvents::BANK_TRANSFER_ORDER->value, $orderModel);
                 return APIManagement::APIOk();
             }
 
