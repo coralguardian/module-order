@@ -7,13 +7,9 @@ use D4rk0snet\Coralguardian\Model\CompanyCustomerModel;
 use D4rk0snet\Coralguardian\Model\IndividualCustomerModel;
 use D4rk0snet\Coralguardian\Service\CustomerService;
 use D4rk0snet\CoralOrder\Model\CustomerModel;
-use D4rk0snet\CoralOrder\Model\DonationOrderModel;
 use D4rk0snet\CoralOrder\Model\OrderModel;
-use D4rk0snet\CoralOrder\Service\CustomerStripeService;
-use D4rk0snet\Donation\Enums\DonationRecurrencyEnum;
 use Exception;
 use Hyperion\RestAPI\APIManagement;
-use Hyperion\Stripe\Service\StripeService;
 use JsonMapper;
 use Stripe\PaymentIntent;
 

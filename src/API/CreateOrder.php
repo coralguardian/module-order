@@ -46,7 +46,7 @@ class CreateOrder extends APIEnpointAbstract
             }
 
             // Création de la facture et récupération du paymentIntent
-            $paymentIntent = CustomerStripeService::CreateCustomerInvoice($orderModel, $stripeCustomer);
+            $invoice = CustomerStripeService::CreateCustomerInvoice($orderModel, $stripeCustomer);
             $needFutureUsage = count(array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donation) {
                     return $donation->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
                 })) >= 1;
@@ -62,8 +62,7 @@ class CreateOrder extends APIEnpointAbstract
             }
 
             // Mise à jour du paymentIntent
-            StripeService::getStripeClient()->paymentIntents->update($paymentIntent->id,$paymentIntentParams);
-            $paymentIntent = StripeService::getStripeClient()->paymentIntents->create($paymentIntentParams);
+            $paymentIntent = StripeService::getStripeClient()->paymentIntents->update($invoice->payment_intent,$paymentIntentParams);
 
             return APIManagement::APIOk([
                 "clientSecret" => $paymentIntent->client_secret
