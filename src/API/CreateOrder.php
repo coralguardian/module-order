@@ -38,22 +38,20 @@ class CreateOrder extends APIEnpointAbstract
                 throw new \Exception("totalPrice is below required for the total order amount");
             }
 
-            // Si c'est un virement bancaire on force la création du user / update
+            $stripeCustomer = CustomerStripeService::getOrCreateCustomer($orderModel);
+
             // @todo: A fixer quand on aura un workflow offchain avec stripe ou on pourra passer les virements.
             if($orderModel->getPaymentMethod() === PaymentMethod::BANK_TRANSFER) {
-                CustomerStripeService::getOrCreateCustomer($orderModel);
                 return APIManagement::APIOk();
             }
 
-            // Création du paymentIntent non rattaché à un client.
+            // Création de la facture et récupération du paymentIntent
+            $paymentIntent = CustomerStripeService::CreateCustomerInvoice($orderModel, $stripeCustomer);
             $needFutureUsage = count(array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donation) {
                     return $donation->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
                 })) >= 1;
 
             $paymentIntentParams = [
-                'amount' =>  self::computeTotalPrice($orderModel) * 100,
-                'currency' => 'eur',
-                'payment_method_types' => ['card'],
                 'metadata' => [
                     "model" => json_encode($orderModel, JSON_THROW_ON_ERROR)
                 ],
@@ -63,15 +61,16 @@ class CreateOrder extends APIEnpointAbstract
                 $paymentIntentParams['setup_future_usage'] = 'off_session';
             }
 
+            // Mise à jour du paymentIntent
+            StripeService::getStripeClient()->paymentIntents->update($paymentIntent->id,$paymentIntentParams);
             $paymentIntent = StripeService::getStripeClient()->paymentIntents->create($paymentIntentParams);
 
+            return APIManagement::APIOk([
+                "clientSecret" => $paymentIntent->client_secret
+            ]);
         } catch (\Exception $exception) {
             return APIManagement::APIError($exception->getMessage(), 400);
         }
-
-        return APIManagement::APIOk([
-            "clientSecret" => $paymentIntent->client_secret
-        ]);
     }
 
     /**

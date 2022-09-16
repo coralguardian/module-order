@@ -8,6 +8,7 @@ use Hyperion\Stripe\Model\CustomerSearchModel;
 use Hyperion\Stripe\Model\ProductSearchModel;
 use Hyperion\Stripe\Service\StripeService;
 use Stripe\Customer;
+use Stripe\Invoice;
 use Stripe\Product;
 
 class CustomerStripeService
@@ -38,7 +39,8 @@ class CustomerStripeService
                     'postal_code' => $customerModel->getPostalCode(),
                     'city' => $customerModel->getCity(),
                     'country' => $customerModel->getCountry()
-                ]
+                ],
+                'email' => $orderModel->getCustomer()->getEmail()
             ];
 
             if($customerModel->getCustomerType() === CustomerType::COMPANY) {
@@ -63,9 +65,10 @@ class CustomerStripeService
     public static function createCustomerInvoice(
         OrderModel $orderModel,
         Customer $stripeCustomer
-    )
+    ) : Invoice
     {
         // @todo: faire pour les dons également
+        $invoice = StripeService::getStripeClient()->invoices->create(['customer' => $stripeCustomer->id]);
 
         foreach($orderModel->getProductsOrdered() as $product)
         {
@@ -88,15 +91,12 @@ class CustomerStripeService
                 [
                     'customer' => $stripeCustomer->id,
                     'price' => $stripeProduct->default_price,
-                    'quantity' => $product->getQuantity()
+                    'quantity' => $product->getQuantity(),
+                    'invoice' => $invoice->id
                 ]
             );
         }
 
-        $invoice = StripeService::getStripeClient()->invoices->create(['customer' => $stripeCustomer->id]);
-        $finalizedInvoice = StripeService::getStripeClient()->invoices->finalizeInvoice($invoice->id,['auto_advance' => false]);
-
-        StripeService::getStripeClient()->invoices->sendInvoice($finalizedInvoice->id);
-
+        return StripeService::getStripeClient()->invoices->finalizeInvoice($invoice->id);
     }
 }
