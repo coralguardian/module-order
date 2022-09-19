@@ -69,7 +69,7 @@ class DonationOrderModel implements \JsonSerializable
     {
         return [
             'amount' => $this->getAmount(),
-            'recurrency' => $this->getDonationRecurrency()->value,
+            'donationRecurrency' => $this->getDonationRecurrency()->value,
             'project' => $this->getProject()
         ];
     }
