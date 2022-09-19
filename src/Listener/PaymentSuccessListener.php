@@ -26,6 +26,6 @@ class PaymentSuccessListener
             }
         },$orderModel->getDonationOrdered());
 
-        do_action(CoralOrderEvents::NEW_ORDER->value, $orderModel);
+        do_action(CoralOrderEvents::NEW_ORDER->value, $orderModel, $stripePaymentIntent);
     }
 }
