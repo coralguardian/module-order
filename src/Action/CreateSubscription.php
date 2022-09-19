@@ -35,7 +35,7 @@ class CreateSubscription
         // et donc inutiles.
         $stripeMonthlySubscriptionPrices = $stripeClient->prices->all(['product' => $stripeMonthlySubscriptionProduct->id]);
         $matchingStripePrices = array_filter($stripeMonthlySubscriptionPrices->toArray(), static function(Price $price) use ($monthlySubscription) {
-            return $price->unit_amount === $monthlySubscription->getAmount() * 100;
+            return $price->unit_amount === (int) $monthlySubscription->getAmount() * 100;
         });
 
         if(count($matchingStripePrices) === 0) {

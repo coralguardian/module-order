@@ -4,6 +4,7 @@ namespace D4rk0snet\CoralOrder\Service;
 
 use D4rk0snet\CoralCustomer\Enum\CustomerType;
 use D4rk0snet\CoralOrder\Model\OrderModel;
+use D4rk0snet\Donation\Enums\DonationRecurrencyEnum;
 use Hyperion\Stripe\Model\CustomerSearchModel;
 use Hyperion\Stripe\Model\PriceSearchModel;
 use Hyperion\Stripe\Model\ProductSearchModel;
@@ -76,7 +77,9 @@ class CustomerStripeService
             $stripeProductSearchModel = new ProductSearchModel(
                 active: true,
                 metadata: [
-                    'key' => $donationOrderModel->getDonationRecurrency()->value,
+                    'key' => $donationOrderModel->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY ?
+                        'fake.subscription' :
+                        $donationOrderModel->getDonationRecurrency()->value,
                     'project' => $donationOrderModel->getProject()
                 ]
             );
@@ -109,10 +112,7 @@ class CustomerStripeService
                 $stripePrice = StripeService::getStripeClient()->prices->create([
                     'unit_amount' => $donationOrderModel->getAmount() * 100,
                     'currency' => 'eur',
-                    'product' => $stripeProduct->id,
-                    'recurring'=> [
-                        'interval' => 'month'
-                    ]
+                    'product' => $stripeProduct->id
                 ]);
             }
 
