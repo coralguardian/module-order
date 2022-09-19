@@ -22,10 +22,10 @@ class PaymentSuccessListener
         // Est ce que l'on a un abonnement mensuel à gérer ?
         array_map(static function(DonationOrderModel $donationOrderModel) use ($orderModel) {
             if($donationOrderModel->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY) {
-                do_action(CoralOrderEvents::NEW_MONTHLY_SUBSCRIPTION, $donationOrderModel->getDonationRecurrency(), $orderModel->getCustomer()->getEmail());
+                do_action(CoralOrderEvents::NEW_MONTHLY_SUBSCRIPTION->value, $donationOrderModel->getDonationRecurrency(), $orderModel->getCustomer()->getEmail());
             }
         },$orderModel->getDonationOrdered());
 
-        do_action(CoralOrderEvents::NEW_ORDER, $orderModel);
+        do_action(CoralOrderEvents::NEW_ORDER->value, $orderModel);
     }
 }
