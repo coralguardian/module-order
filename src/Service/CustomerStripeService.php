@@ -109,7 +109,10 @@ class CustomerStripeService
                 $stripePrice = StripeService::getStripeClient()->prices->create([
                     'unit_amount' => $donationOrderModel->getAmount() * 100,
                     'currency' => 'eur',
-                    'product' => $stripeProduct->id
+                    'product' => $stripeProduct->id,
+                    'recurring'=> [
+                        'interval' => 'month'
+                    ]
                 ]);
             }
 
