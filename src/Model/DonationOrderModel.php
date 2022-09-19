@@ -2,7 +2,6 @@
 
 namespace D4rk0snet\CoralOrder\Model;
 
-use D4rk0snet\CoralOrder\Enums\PaymentMethod;
 use D4rk0snet\Donation\Enums\DonationRecurrencyEnum;
 use Exception;
 
@@ -47,7 +46,7 @@ class DonationOrderModel implements \JsonSerializable
     public function setDonationRecurrency(string $donationRecurrency): DonationOrderModel
     {
         try {
-            $this->paymentMethod = DonationRecurrencyEnum::from($donationRecurrency);
+            $this->donationRecurrency = DonationRecurrencyEnum::from($donationRecurrency);
 
             return $this;
         } catch (\ValueError $exception) {
