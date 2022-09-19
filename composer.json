@@ -18,10 +18,17 @@
         "type" : "vcs",
         "url": "git@github.com:ds-hyperion/stripe.git",
         "no-api": true
+      },
+      {
+        "type" : "vcs",
+        "url": "git@github.com:ds-hyperion/restapi.git",
+        "no-api": true
       }
     ],
     "require" :
       {
-        "hyperion/stripe": "dev/dev"
+        "hyperion/stripe"  : "dev/dev",
+        "hyperion/restapi" : "dev/dev",
+        "netresearch/jsonmapper" : "4.*"
       }
 }

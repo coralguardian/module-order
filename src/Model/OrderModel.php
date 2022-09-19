@@ -2,8 +2,9 @@
 
 namespace D4rk0snet\CoralOrder\Model;
 
+use D4rk0snet\CoralCustomer\Model\CustomerModel;
 use D4rk0snet\Coralguardian\Enums\Language;
-use D4rk0snet\Donation\Enums\PaymentMethod;
+use D4rk0snet\CoralOrder\Enums\PaymentMethod;
 use Exception;
 
 class OrderModel implements \JsonSerializable
@@ -19,6 +20,7 @@ class OrderModel implements \JsonSerializable
     /** @required */
     private Language $language;
     private ?float $totalAmount = null;
+    private ?GiftModel $giftModel;
 
     public function afterMapping()
     {
@@ -116,6 +118,17 @@ class OrderModel implements \JsonSerializable
         } catch (\ValueError $exception) {
             throw new Exception("Invalid language value");
         }
+    }
+
+    public function getGiftModel(): ?GiftModel
+    {
+        return $this->giftModel;
+    }
+
+    public function setGiftModel(?GiftModel $giftModel): OrderModel
+    {
+        $this->giftModel = $giftModel;
+        return $this;
     }
 
     public function jsonSerialize()

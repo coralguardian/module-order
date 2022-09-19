@@ -2,15 +2,13 @@
 
 namespace D4rk0snet\CoralOrder\API;
 
-use D4rk0snet\Coralguardian\Event\BankTransferPayment;
-use D4rk0snet\CoralOrder\Event\CoralOrderEvents;
+use D4rk0snet\CoralOrder\Enums\CoralOrderEvents;
+use D4rk0snet\CoralOrder\Enums\PaymentMethod;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
 use D4rk0snet\CoralOrder\Model\OrderModel;
 use D4rk0snet\CoralOrder\Model\ProductOrderModel;
 use D4rk0snet\CoralOrder\Service\CustomerStripeService;
 use D4rk0snet\Donation\Enums\DonationRecurrencyEnum;
-use D4rk0snet\Donation\Enums\PaymentMethod;
-use Hyperion\Doctrine\Service\DoctrineService;
 use Hyperion\RestAPI\APIEnpointAbstract;
 use Hyperion\RestAPI\APIManagement;
 use Hyperion\Stripe\Model\ProductSearchModel;
@@ -50,7 +48,7 @@ class CreateOrder extends APIEnpointAbstract
 
             // Création de la facture et récupération du paymentIntent
             $invoice = CustomerStripeService::CreateCustomerInvoice($orderModel, $stripeCustomer);
-            $needFutureUsage = count(array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donation) {
+            $needFutureUsage = count(array_filter($orderModel->getDonationOrdered(), static function(DonationOrderModel $donation) {
                     return $donation->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
                 })) >= 1;
 
