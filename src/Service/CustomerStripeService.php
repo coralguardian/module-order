@@ -2,7 +2,7 @@
 
 namespace D4rk0snet\CoralOrder\Service;
 
-use D4rk0snet\Coralguardian\Enums\CustomerType;
+use D4rk0snet\CoralCustomer\Enum\CustomerType;
 use D4rk0snet\CoralOrder\Model\OrderModel;
 use Hyperion\Stripe\Model\CustomerSearchModel;
 use Hyperion\Stripe\Model\ProductSearchModel;
