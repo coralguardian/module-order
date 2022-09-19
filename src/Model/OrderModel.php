@@ -20,7 +20,7 @@ class OrderModel implements \JsonSerializable
     /** @required */
     private Language $lang;
     private ?float $totalAmount = null;
-    private ?GiftModel $giftModel;
+    private ?GiftModel $giftModel = null;
 
     public function afterMapping()
     {
