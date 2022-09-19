@@ -155,7 +155,7 @@ class OrderModel implements \JsonSerializable
 
         $result['paymentMethod'] = $this->getPaymentMethod()->value;
         $result['totalAmount'] = $this->getTotalAmount();
-        $result['language'] = $this->getLang()->value;
+        $result['lang'] = $this->getLang()->value;
 
         return $result;
     }
