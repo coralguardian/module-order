@@ -18,7 +18,7 @@ class OrderModel implements \JsonSerializable
     /** @required */
     private PaymentMethod $paymentMethod;
     /** @required */
-    private Language $language;
+    private Language $lang;
     private ?float $totalAmount = null;
     private ?GiftModel $giftModel;
 
@@ -105,15 +105,15 @@ class OrderModel implements \JsonSerializable
         }
     }
 
-    public function getLanguage(): Language
+    public function getLang(): Language
     {
-        return $this->language;
+        return $this->lang;
     }
 
-    public function setLanguage(string $language): OrderModel
+    public function setLang(string $language): OrderModel
     {
         try {
-            $this->language = Language::from($language);
+            $this->lang = Language::from($language);
             return $this;
         } catch (\ValueError $exception) {
             throw new Exception("Invalid language value");
@@ -155,7 +155,7 @@ class OrderModel implements \JsonSerializable
 
         $result['paymentMethod'] = $this->getPaymentMethod()->value;
         $result['totalAmount'] = $this->getTotalAmount();
-        $result['language'] = $this->getLanguage()->value;
+        $result['language'] = $this->getLang()->value;
 
         return $result;
     }
