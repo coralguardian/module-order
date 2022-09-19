@@ -18,4 +18,4 @@ use Hyperion\Stripe\Enum\StripeEventEnum;
 
 add_action('plugins_loaded', [Plugin::class,'launchActions']);
 add_action(StripeEventEnum::PAYMENT_SUCCESS->value, [PaymentSuccessListener::class,'doAction'], 10, 1);
-add_action(CoralOrderEvents::NEW_MONTHLY_SUBSCRIPTION, [CreateSubscription::class, 'doAction'], 10,2);
+add_action(CoralOrderEvents::NEW_MONTHLY_SUBSCRIPTION->value, [CreateSubscription::class, 'doAction'], 10,2);
