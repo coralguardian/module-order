@@ -98,8 +98,8 @@ class CustomerStripeService
                 ->prices
                 ->search(['query' => (string) $stripePriceSearchModel]);
 
-            $stripePrices = array_filter($searchResult->toArray(), function(Price $price) use ($donationOrderModel) {
-                return $price->unit_amount === $donationOrderModel->getAmount() * 100;
+            $stripePrices = array_filter($searchResult->data, static function(Price $price) use ($donationOrderModel) {
+                return $price->unit_amount === (int) $donationOrderModel->getAmount() * 100;
             });
 
             if(count($stripePrices) > 0) {
