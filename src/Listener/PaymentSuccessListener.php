@@ -16,11 +16,17 @@ class PaymentSuccessListener
         $mapper = new JsonMapper();
         $mapper->bExceptionOnMissingData = true;
         $mapper->postMappingMethod = 'afterMapping';
+
+        // Evite le déclenchement lors de la création de la subscription
+        if(json_decode($stripePaymentIntent->metadata) === null) {
+            return;
+        }
+
         /** @var OrderModel $orderModel */
         $orderModel = $mapper->map(json_decode($stripePaymentIntent->metadata['model'], false, 512, JSON_THROW_ON_ERROR), new OrderModel());
 
         // Est ce que l'on a un abonnement mensuel à gérer ?
-        array_map(static function(DonationOrderModel $donationOrderModel) use ($orderModel) {
+        array_map(static function(DonationOrderModel $donationOrderModel) use ($orderModel, $stripePaymentIntent) {
             if($donationOrderModel->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY) {
                 do_action(CoralOrderEvents::NEW_MONTHLY_SUBSCRIPTION->value, $donationOrderModel, $orderModel->getCustomer()->getEmail());
             }

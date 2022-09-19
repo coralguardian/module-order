@@ -7,6 +7,7 @@ use Hyperion\Stripe\Model\CustomerSearchModel;
 use Hyperion\Stripe\Model\ProductSearchModel;
 use Hyperion\Stripe\Service\StripeService;
 use Stripe\Customer;
+use Stripe\PaymentIntent;
 use Stripe\Price;
 
 class CreateSubscription
@@ -33,8 +34,8 @@ class CreateSubscription
 
         // On recherche les prix déjà disponibles pour ce produit pour éviter d'en créer d'autres similaires
         // et donc inutiles.
-        $stripeMonthlySubscriptionPrices = $stripeClient->prices->all(['product' => $stripeMonthlySubscriptionProduct->id]);
-        $matchingStripePrices = array_filter($stripeMonthlySubscriptionPrices->toArray(), static function(Price $price) use ($monthlySubscription) {
+        $stripeMonthlySubscriptionPrices = $stripeClient->prices->all(['product' => $stripeMonthlySubscriptionProduct->id, 'active' => true]);
+        $matchingStripePrices = array_filter($stripeMonthlySubscriptionPrices->data, static function(Price $price) use ($monthlySubscription) {
             return $price->unit_amount === (int) $monthlySubscription->getAmount() * 100;
         });
 

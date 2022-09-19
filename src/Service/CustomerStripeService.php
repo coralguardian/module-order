@@ -74,15 +74,23 @@ class CustomerStripeService
 
         foreach($orderModel->getDonationOrdered() as $donationOrderModel)
         {
-            $stripeProductSearchModel = new ProductSearchModel(
-                active: true,
-                metadata: [
-                    'key' => $donationOrderModel->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY ?
-                        'fake.subscription' :
-                        $donationOrderModel->getDonationRecurrency()->value,
-                    'project' => $donationOrderModel->getProject()
-                ]
-            );
+            if($donationOrderModel->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY)
+            {
+                $stripeProductSearchModel = new ProductSearchModel(
+                    active: true,
+                    metadata: [
+                        'key' => 'fake.subscription'
+                    ]
+                );
+            } else {
+                $stripeProductSearchModel = new ProductSearchModel(
+                    active: true,
+                    metadata: [
+                        'key' => $donationOrderModel->getDonationRecurrency()->value,
+                        'project' => $donationOrderModel->getProject()
+                    ]
+                );
+            }
 
             $searchResult = StripeService::getStripeClient()
                 ->products
