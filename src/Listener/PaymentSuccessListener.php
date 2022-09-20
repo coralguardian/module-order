@@ -18,7 +18,7 @@ class PaymentSuccessListener
         $mapper->postMappingMethod = 'afterMapping';
 
         // Evite le déclenchement lors de la création de la subscription
-        if(json_decode($stripePaymentIntent->metadata) === null) {
+        if(json_decode($stripePaymentIntent->metadata['model']) === null) {
             return;
         }
 
