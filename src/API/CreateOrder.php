@@ -87,7 +87,11 @@ class CreateOrder extends APIEnpointAbstract
         // Produits
         array_map(
             static function(ProductOrderModel $productOrderModel) use (&$totalProductPriceToPay) {
-                $totalProductPriceToPay += self::getDefaultProductPrice($productOrderModel->getKey(), $productOrderModel->getProject());
+                $totalProductPriceToPay += self::getDefaultProductPrice(
+                    $productOrderModel->getKey(),
+                    $productOrderModel->getProject(),
+                    $productOrderModel->getVariant()
+                );
             },
             $orderModel->getProductsOrdered(),
         );
@@ -109,7 +113,11 @@ class CreateOrder extends APIEnpointAbstract
         // Produits
         array_map(
             static function(ProductOrderModel $productOrderModel) use (&$totalToPay) {
-                $totalToPay += self::getDefaultProductPrice($productOrderModel->getKey(), $productOrderModel->getProject()) * $productOrderModel->getQuantity();
+                $totalToPay += self::getDefaultProductPrice(
+                    $productOrderModel->getKey(),
+                    $productOrderModel->getProject(),
+                    $productOrderModel->getVariant()
+                    ) * $productOrderModel->getQuantity();
             },
             $orderModel->getProductsOrdered(),
         );
@@ -133,14 +141,20 @@ class CreateOrder extends APIEnpointAbstract
      * @throws \Stripe\Exception\ApiErrorException
      * @return float|null
      */
-    private static function getDefaultProductPrice(string $productKey, string $project) : ?float
+    private static function getDefaultProductPrice(string $productKey, string $project, ?string $variant = null) : ?float
     {
+        $metadata = [
+            'key' => $productKey,
+            'project' => $project
+        ];
+
+        if($variant !== null) {
+            $metadata['variant'] = $variant;
+        }
+
         $stripeProductSearchModel = new ProductSearchModel(
             active: true,
-            metadata: [
-                'key' => $productKey,
-                'project' => $project
-            ]
+            metadata: $metadata
         );
 
         $searchResult = StripeService::getStripeClient()
