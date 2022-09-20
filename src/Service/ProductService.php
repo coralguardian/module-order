@@ -44,6 +44,7 @@ class ProductService
             ->search(['query' => (string) $stripeProductSearchModel]);
 
         if(count($searchResult->data) === 0 ) {
+            var_dump($productSearchMetadata);
             throw new \Exception("Invoice creation aborted. Product not found");
         } elseif(count($searchResult->data) > 1) {
             throw new \Exception("Invoice creation aborted. More than one product found.");

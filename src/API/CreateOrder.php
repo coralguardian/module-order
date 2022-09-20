@@ -2,8 +2,8 @@
 
 namespace D4rk0snet\CoralOrder\API;
 
-use D4rk0snet\CoralOrder\Action\InvoiceService;
-use D4rk0snet\CoralOrder\Action\SubscriptionService;
+use D4rk0snet\CoralOrder\Service\InvoiceService;
+use D4rk0snet\CoralOrder\Service\SubscriptionService;
 use D4rk0snet\CoralOrder\Enums\CoralOrderEvents;
 use D4rk0snet\CoralOrder\Enums\PaymentMethod;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
@@ -64,15 +64,16 @@ class CreateOrder extends APIEnpointAbstract
                 ]);
             }
 
-            // On vérifie si le prix est cohérent
-            if($orderModel->getProductsOrdered() !== null && !self::checkPriceConsistency($orderModel)) {
-                throw new \Exception("totalPrice is below required for the total order amount");
-            }
-
             // Si on a juste un achat de produits (coraux, récifs, don ponctuel), on prépare une facture
             // avec l'ensemble des produits souhaités avec la quantité.
             // Si la personne a entrée un prix supérieur au prix du produit x quantité , alors la différence est un don unique.
             if(count($orderModel->getProductsOrdered()) > 0) {
+
+                // On vérifie si le prix est cohérent
+                if(!self::checkPriceConsistency($orderModel)) {
+                    throw new \Exception("totalPrice is below required for the total order amount");
+                }
+
                 $productOrderModel = current($orderModel->getProductsOrdered());
                 $stripeProduct = ProductService::getProduct(
                     key: $productOrderModel->getKey(),
@@ -98,8 +99,9 @@ class CreateOrder extends APIEnpointAbstract
                 stripeCustomer: $stripeCustomer
             );
 
+            $stripePaymentIntent = StripeService::getStripeClient()->paymentIntents->retrieve($invoice->payment_intent);
             return APIManagement::APIOk([
-                "clientSecret" => $invoice->payment_intent->client_secret
+                "clientSecret" => $stripePaymentIntent->client_secret
             ]);
 
         } catch (\Exception $exception) {

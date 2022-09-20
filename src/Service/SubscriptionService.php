@@ -1,6 +1,6 @@
 <?php
 
-namespace D4rk0snet\CoralOrder\Action;
+namespace D4rk0snet\CoralOrder\Service;
 
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
 use Hyperion\Stripe\Model\ProductSearchModel;
