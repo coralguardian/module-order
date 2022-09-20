@@ -24,7 +24,11 @@ class PaymentSuccessListener
         }
 
         // Force mise en defaut du moyen de paiement utilisé.
-        StripeService::getStripeClient()->customers->update($stripePaymentIntent->customer, ['invoice_settings.default_payment_method'=> $stripePaymentIntent->payment_method]);
+        StripeService::getStripeClient()->customers->update($stripePaymentIntent->customer,
+            ['invoice_settings' =>
+                ['default_payment_method' => $stripePaymentIntent->payment_method]
+            ]
+        );
 
         /** @var OrderModel $orderModel */
         $orderModel = $mapper->map(json_decode($stripePaymentIntent->metadata['model'], false, 512, JSON_THROW_ON_ERROR), new OrderModel());
