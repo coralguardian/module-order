@@ -69,7 +69,7 @@ class CreateSubscription
                 'items' => [[
                     'price' => $price->id
                 ]],
-                'default_payment_method' => $stripeCustomer->default_source
+                'default_payment_method' => $stripeCustomer->invoice_settings->default_payment_method
             ]
         );
     }
