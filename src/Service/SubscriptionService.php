@@ -3,16 +3,26 @@
 namespace D4rk0snet\CoralOrder\Action;
 
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
-use Hyperion\Stripe\Model\CustomerSearchModel;
 use Hyperion\Stripe\Model\ProductSearchModel;
 use Hyperion\Stripe\Service\StripeService;
 use Stripe\Customer;
-use Stripe\PaymentIntent;
 use Stripe\Price;
 
-class CreateSubscription
+class SubscriptionService
 {
-    public static function doAction(DonationOrderModel $monthlySubscription, string $email)
+    /**
+     * Création d'une nouvelle subscription
+     * Renvoie le secret pour le paiement
+     *
+     * @param DonationOrderModel $monthlySubscription
+     * @param Customer $customer
+     * @throws \Stripe\Exception\ApiErrorException
+     * @return string
+     */
+    public static function create(
+        DonationOrderModel $monthlySubscription,
+        Customer $customer
+    ) : string
     {
         $stripeClient = StripeService::getStripeClient();
 
@@ -34,7 +44,11 @@ class CreateSubscription
 
         // On recherche les prix déjà disponibles pour ce produit pour éviter d'en créer d'autres similaires
         // et donc inutiles.
-        $stripeMonthlySubscriptionPrices = $stripeClient->prices->all(['product' => $stripeMonthlySubscriptionProduct->id, 'active' => true]);
+        $stripeMonthlySubscriptionPrices = $stripeClient->prices->all([
+            'product' => $stripeMonthlySubscriptionProduct->id,
+            'active' => true,
+            'project' => $monthlySubscription->getProject()
+        ]);
         $matchingStripePrices = array_filter($stripeMonthlySubscriptionPrices->data, static function(Price $price) use ($monthlySubscription) {
             return $price->unit_amount === (int) $monthlySubscription->getAmount() * 100;
         });
@@ -51,26 +65,18 @@ class CreateSubscription
             $price = current($matchingStripePrices);
         }
 
-        // On récupère le customer
-        $searchModel = new CustomerSearchModel(email: $email);
-        $customers = $stripeClient->customers->search(['query' => (string) $searchModel]);
-
-        if($customers->count() === 0) {
-            throw new \Exception("Unable to find the stripe customer !. Subscription aborted");
-        }
-
-        /** @var Customer $stripeCustomer */
-        $stripeCustomer = $customers->first();
-
         // Création de l'abonnement
-        $stripeClient->subscriptions->create(
+        $subscription = $stripeClient->subscriptions->create(
             [
-                'customer' => $stripeCustomer->id,
+                'customer' => $customer->id,
                 'items' => [[
                     'price' => $price->id
                 ]],
-                'default_payment_method' => $stripeCustomer->invoice_settings->default_payment_method
+                'payment_behavior' => 'default_incomplete',
+                'expand' => ['latest_invoice.payment_intent']
             ]
         );
+
+        return $subscription->latest_invoice->payment_intent->client_secret;
     }
 }
