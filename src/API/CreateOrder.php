@@ -105,16 +105,16 @@ class CreateOrder extends APIEnpointAbstract
             // Maj des metas du paymentIntent
             $metadata = [
                 'customer' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR),
+                'language' => $orderModel->getLang()->value
             ];
             if(count($orderModel->getProductsOrdered()) > 0) {
                 $metadata = array_merge($metadata,
                         [
                             'productOrdered' => json_encode(current($orderModel->getProductsOrdered()), JSON_THROW_ON_ERROR),
-                            'language' => $orderModel->getLang()->value,
                             'giftAdoption' => $orderModel->isSendToFriend()
                         ]);
             } else {
-                $metadata['donationOrder'] = json_encode(current($orderModel->getDonationOrdered()), JSON_THROW_ON_ERROR);
+                $metadata['donationOrdered'] = json_encode(current($orderModel->getDonationOrdered()), JSON_THROW_ON_ERROR);
             }
             StripeService::getStripeClient()->paymentIntents->update($stripePaymentIntent->id, [
                 'metadata' => $metadata
