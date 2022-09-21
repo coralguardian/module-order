@@ -56,7 +56,8 @@ class CreateOrder extends APIEnpointAbstract
             ) {
                 $secret = SubscriptionService::create(
                     monthlySubscription: current($orderModel->getDonationOrdered()),
-                    customer: $stripeCustomer
+                    customer: $stripeCustomer,
+                    customerModel: current($orderModel->getCustomer())
                 );
 
                 return APIManagement::APIOk([
@@ -100,6 +101,29 @@ class CreateOrder extends APIEnpointAbstract
             );
 
             $stripePaymentIntent = StripeService::getStripeClient()->paymentIntents->retrieve($invoice->payment_intent);
+
+            // Maj des metas du paymentIntent
+            if(count($orderModel->getProductsOrdered()) > 0) {
+                StripeService::getStripeClient()->paymentIntents->update($stripePaymentIntent->id, [
+                    'metadata' =>
+                        [
+                            'customer' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR),
+                            'productOrdered' => json_encode(current($orderModel->getProductsOrdered()), JSON_THROW_ON_ERROR),
+                            'language' => $orderModel->getLang()->value,
+                            'giftAdoption' => $orderModel->isSendToFriend()
+                        ]
+                ]);
+            } else {
+                StripeService::getStripeClient()->paymentIntents->update($stripePaymentIntent->id, [
+                    'metadata' =>
+                        [
+                            'customer' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR),
+                            'language' => $orderModel->getLang()->value
+                        ]
+                ]);
+            }
+
+            // Si on a des produits adoptable alors on met le modèle dans les metas
             return APIManagement::APIOk([
                 "clientSecret" => $stripePaymentIntent->client_secret
             ]);

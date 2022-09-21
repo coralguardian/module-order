@@ -2,6 +2,7 @@
 
 namespace D4rk0snet\CoralOrder\Service;
 
+use D4rk0snet\CoralCustomer\Model\CustomerModel;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
 use Hyperion\Stripe\Model\ProductSearchModel;
 use Hyperion\Stripe\Service\StripeService;
@@ -21,7 +22,8 @@ class SubscriptionService
      */
     public static function create(
         DonationOrderModel $monthlySubscription,
-        Customer $customer
+        Customer $customer,
+        CustomerModel $customerModel
     ) : string
     {
         $stripeClient = StripeService::getStripeClient();
@@ -73,7 +75,10 @@ class SubscriptionService
                     'price' => $price->id
                 ]],
                 'payment_behavior' => 'default_incomplete',
-                'expand' => ['latest_invoice.payment_intent']
+                'expand' => ['latest_invoice.payment_intent'],
+                'metadata' => [
+                    'customerModel' => json_encode($customerModel, JSON_THROW_ON_ERROR)
+                ]
             ]
         );
 

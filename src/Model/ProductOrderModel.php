@@ -27,6 +27,15 @@ class ProductOrderModel implements \JsonSerializable
         return $this->key;
     }
 
+    public function getFullKey() : string
+    {
+        if($this->getVariant()) {
+            return $this->getKey().".".$this->getVariant();
+        }
+
+        return $this->getKey();
+    }
+
     public function setKey(string $key): ProductOrderModel
     {
         $this->key = $key;
