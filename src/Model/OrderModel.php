@@ -20,7 +20,7 @@ class OrderModel implements \JsonSerializable
     /** @required */
     private Language $lang;
     private ?float $totalAmount = null;
-    private bool $sendToFriend = false;
+    private ?bool $sendToFriend = null;
 
     public function afterMapping()
     {
@@ -120,12 +120,12 @@ class OrderModel implements \JsonSerializable
         }
     }
 
-    public function isSendToFriend(): bool
+    public function isSendToFriend(): ?bool
     {
         return $this->sendToFriend;
     }
 
-    public function setSendToFriend(bool $sendToFriend): OrderModel
+    public function setSendToFriend(?bool $sendToFriend): OrderModel
     {
         $this->sendToFriend = $sendToFriend;
         return $this;
