@@ -49,7 +49,6 @@ class SubscriptionService
         $stripeMonthlySubscriptionPrices = $stripeClient->prices->all([
             'product' => $stripeMonthlySubscriptionProduct->id,
             'active' => true,
-            'project' => $monthlySubscription->getProject()
         ]);
         $matchingStripePrices = array_filter($stripeMonthlySubscriptionPrices->data, static function(Price $price) use ($monthlySubscription) {
             return $price->unit_amount === (int) $monthlySubscription->getAmount() * 100;
