@@ -103,25 +103,22 @@ class CreateOrder extends APIEnpointAbstract
             $stripePaymentIntent = StripeService::getStripeClient()->paymentIntents->retrieve($invoice->payment_intent);
 
             // Maj des metas du paymentIntent
+            $metadata = [
+                'customer' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR),
+            ];
             if(count($orderModel->getProductsOrdered()) > 0) {
-                StripeService::getStripeClient()->paymentIntents->update($stripePaymentIntent->id, [
-                    'metadata' =>
+                $metadata = array_merge($metadata,
                         [
-                            'customer' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR),
                             'productOrdered' => json_encode(current($orderModel->getProductsOrdered()), JSON_THROW_ON_ERROR),
                             'language' => $orderModel->getLang()->value,
                             'giftAdoption' => $orderModel->isSendToFriend()
-                        ]
-                ]);
+                        ]);
             } else {
-                StripeService::getStripeClient()->paymentIntents->update($stripePaymentIntent->id, [
-                    'metadata' =>
-                        [
-                            'customer' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR),
-                            'language' => $orderModel->getLang()->value
-                        ]
-                ]);
+                $metadata['donationOrder'] = json_encode(current($orderModel->getDonationOrdered()), JSON_THROW_ON_ERROR);
             }
+            StripeService::getStripeClient()->paymentIntents->update($stripePaymentIntent->id, [
+                'metadata' => $metadata
+            ]);
 
             // Si on a des produits adoptable alors on met le modèle dans les metas
             return APIManagement::APIOk([
