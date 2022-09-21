@@ -57,7 +57,7 @@ class CreateOrder extends APIEnpointAbstract
                 $secret = SubscriptionService::create(
                     monthlySubscription: current($orderModel->getDonationOrdered()),
                     customer: $stripeCustomer,
-                    customerModel: current($orderModel->getCustomer())
+                    customerModel: $orderModel->getCustomer()
                 );
 
                 return APIManagement::APIOk([
