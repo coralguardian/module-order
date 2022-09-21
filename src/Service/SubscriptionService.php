@@ -75,6 +75,9 @@ class SubscriptionService
                     'price' => $price->id
                 ]],
                 'payment_behavior' => 'default_incomplete',
+                'payment_settings' => [
+                    'save_default_payment_method' => 'on_subscription'
+                ],
                 'expand' => ['latest_invoice.payment_intent'],
                 'metadata' => [
                     'customerModel' => json_encode($customerModel, JSON_THROW_ON_ERROR)
