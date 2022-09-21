@@ -113,9 +113,12 @@ class CreateOrder extends APIEnpointAbstract
                             'productOrdered' => json_encode(current($orderModel->getProductsOrdered()), JSON_THROW_ON_ERROR),
                             'giftAdoption' => $orderModel->isSendToFriend()
                         ]);
-            } else {
+            }
+
+            if(count($orderModel->getDonationOrdered()) > 0) {
                 $metadata['donationOrdered'] = json_encode(current($orderModel->getDonationOrdered()), JSON_THROW_ON_ERROR);
             }
+
             StripeService::getStripeClient()->paymentIntents->update($stripePaymentIntent->id, [
                 'metadata' => $metadata
             ]);
