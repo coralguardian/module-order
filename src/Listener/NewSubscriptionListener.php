@@ -11,7 +11,7 @@ use Stripe\Subscription;
 
 class NewSubscriptionListener
 {
-    public static function do_action(Subscription $subscription)
+    public static function doAction(Subscription $subscription)
     {
         // On check si on est sur un achat croisé (abonnement + achat de produit)
         if($subscription->metadata['productOrdered'] === null) {
@@ -64,6 +64,6 @@ class NewSubscriptionListener
         }
 
         $invoice = StripeService::getStripeClient()->invoices->finalizeInvoice($invoice->id);
-        StripeService::getStripeClient()->invoices->pay($invoice->id, ['default_payment_method' => $subscription->default_payment_method]);
+        StripeService::getStripeClient()->invoices->pay($invoice->id, ['payment_method' => $subscription->default_payment_method]);
     }
 }

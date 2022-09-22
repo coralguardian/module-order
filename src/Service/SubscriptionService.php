@@ -85,9 +85,9 @@ class SubscriptionService
             $metadata['productOrdered'] = json_encode(current($orderModel->getProductsOrdered()), JSON_THROW_ON_ERROR);
 
             $stripeDefaultPrice = StripeService::getStripeClient()->prices->retrieve($stripeProduct->default_price);
-            if($orderModel->getTotalAmount() > $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity()) {
+            if($orderModel->getTotalAmount() - $monthlySubscription->getAmount()  > $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity()) {
                 // On rajoute un don unique dans le modèle
-                $oneShotDonationPrice = $orderModel->getTotalAmount() - $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity();
+                $oneShotDonationPrice = ($orderModel->getTotalAmount() - $monthlySubscription->getAmount()) - $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity();
                 $oneShotDonation = new DonationOrderModel();
                 $oneShotDonation
                     ->setAmount($oneShotDonationPrice)
