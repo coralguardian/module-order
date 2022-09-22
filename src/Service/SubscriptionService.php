@@ -4,6 +4,7 @@ namespace D4rk0snet\CoralOrder\Service;
 
 use D4rk0snet\CoralCustomer\Model\CustomerModel;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
+use D4rk0snet\CoralOrder\Model\ProductOrderModel;
 use Hyperion\Stripe\Model\ProductSearchModel;
 use Hyperion\Stripe\Service\StripeService;
 use Stripe\Customer;
@@ -14,6 +15,7 @@ class SubscriptionService
     /**
      * Création d'une nouvelle subscription
      * Renvoie le secret pour le paiement
+     * @todo: Mettre le productOrderModel également en meta si dispo car on pourrait avoir une cmd hybride
      *
      * @param DonationOrderModel $monthlySubscription
      * @param Customer $customer
@@ -23,7 +25,8 @@ class SubscriptionService
     public static function create(
         DonationOrderModel $monthlySubscription,
         Customer $customer,
-        CustomerModel $customerModel
+        CustomerModel $customerModel,
+        ?ProductOrderModel $productOrderModel = null
     ) : string
     {
         $stripeClient = StripeService::getStripeClient();
@@ -67,6 +70,16 @@ class SubscriptionService
         }
 
         // Création de l'abonnement
+        $metadata = [
+            'customerModel' => json_encode($customerModel, JSON_THROW_ON_ERROR)
+        ];
+
+        if($productOrderModel !== null) {
+            $metadata = [
+                'productOrdered' => json_encode($productOrderModel, JSON_THROW_ON_ERROR)
+            ];
+        }
+
         $subscription = $stripeClient->subscriptions->create(
             [
                 'customer' => $customer->id,
@@ -78,9 +91,7 @@ class SubscriptionService
                     'save_default_payment_method' => 'on_subscription'
                 ],
                 'expand' => ['latest_invoice.payment_intent'],
-                'metadata' => [
-                    'customerModel' => json_encode($customerModel, JSON_THROW_ON_ERROR)
-                ]
+                'metadata' => $metadata
             ]
         );
 

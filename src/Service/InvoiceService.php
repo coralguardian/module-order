@@ -35,8 +35,6 @@ class InvoiceService
                     'invoice' => $invoice->id
                 ]
             );
-
-            return StripeService::getStripeClient()->invoices->finalizeInvoice($invoice->id);
         }
 
         if(count($orderModel->getDonationOrdered()) > 0) {
