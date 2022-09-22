@@ -2,9 +2,9 @@
 
 namespace D4rk0snet\CoralOrder\Service;
 
-use D4rk0snet\CoralCustomer\Model\CustomerModel;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
-use D4rk0snet\CoralOrder\Model\ProductOrderModel;
+use D4rk0snet\CoralOrder\Model\OrderModel;
+use D4rk0snet\Donation\Enums\DonationRecurrencyEnum;
 use Hyperion\Stripe\Model\ProductSearchModel;
 use Hyperion\Stripe\Service\StripeService;
 use Stripe\Customer;
@@ -15,7 +15,6 @@ class SubscriptionService
     /**
      * Création d'une nouvelle subscription
      * Renvoie le secret pour le paiement
-     * @todo: Mettre le productOrderModel également en meta si dispo car on pourrait avoir une cmd hybride
      *
      * @param DonationOrderModel $monthlySubscription
      * @param Customer $customer
@@ -23,13 +22,12 @@ class SubscriptionService
      * @return string
      */
     public static function create(
-        DonationOrderModel $monthlySubscription,
-        Customer $customer,
-        CustomerModel $customerModel,
-        ?ProductOrderModel $productOrderModel = null
+        OrderModel $orderModel,
+        Customer $customer
     ) : string
     {
         $stripeClient = StripeService::getStripeClient();
+        $monthlySubscription = current($orderModel->getDonationOrdered());
 
         // recherche du produit dans stripe
         $searchModel = new ProductSearchModel(
@@ -71,13 +69,34 @@ class SubscriptionService
 
         // Création de l'abonnement
         $metadata = [
-            'customerModel' => json_encode($customerModel, JSON_THROW_ON_ERROR)
+            'customerModel' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR)
         ];
 
-        if($productOrderModel !== null) {
-            $metadata = [
-                'productOrdered' => json_encode($productOrderModel, JSON_THROW_ON_ERROR)
-            ];
+        if(count($orderModel->getProductsOrdered()) > 0) {
+            $productOrderModel = current($orderModel->getProductsOrdered());
+
+            // On vérifie également que l'on a pas un reliquat par rapport au prix du produit
+            $stripeProduct = ProductService::getProduct(
+                key: $productOrderModel->getKey(),
+                project: $productOrderModel->getProject(),
+                variant: $productOrderModel->getVariant()
+            );
+
+            $metadata['productOrdered'] = json_encode(current($orderModel->getProductsOrdered()), JSON_THROW_ON_ERROR);
+
+            $stripeDefaultPrice = StripeService::getStripeClient()->prices->retrieve($stripeProduct->default_price);
+            if($orderModel->getTotalAmount() > $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity()) {
+                // On rajoute un don unique dans le modèle
+                $oneShotDonationPrice = $orderModel->getTotalAmount() - $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity();
+                $oneShotDonation = new DonationOrderModel();
+                $oneShotDonation
+                    ->setAmount($oneShotDonationPrice)
+                    ->setProject($productOrderModel->getProject())
+                    ->setDonationRecurrency(DonationRecurrencyEnum::ONESHOT->value);
+                $orderModel->setDonationOrdered([$oneShotDonation]);
+
+                $metadata['oneshotDonation'] = json_encode($oneShotDonation, JSON_THROW_ON_ERROR);
+            }
         }
 
         $subscription = $stripeClient->subscriptions->create(

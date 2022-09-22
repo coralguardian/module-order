@@ -2,6 +2,7 @@
 
 namespace D4rk0snet\CoralOrder\API;
 
+use D4rk0snet\CoralOrder\Model\ProductOrderModel;
 use D4rk0snet\CoralOrder\Service\InvoiceService;
 use D4rk0snet\CoralOrder\Service\SubscriptionService;
 use D4rk0snet\CoralOrder\Enums\CoralOrderEvents;
@@ -21,8 +22,6 @@ use WP_REST_Response;
 class CreateOrder extends APIEnpointAbstract
 {
     /**
-     * @todo : Mélange entre don mensuel et achat de produit.
-     *
      * @param WP_REST_Request $request
      * @throws \JsonException
      * @return WP_REST_Response
@@ -48,16 +47,14 @@ class CreateOrder extends APIEnpointAbstract
                 return APIManagement::APIOk();
             }
 
-            // Si on a un abonnement mensuel seul, on prépare la subscription qui aura le secret.
+            // Si on a un abonnement mensuel, on prépare la subscription qui aura le secret.
             if(
                 count($orderModel->getDonationOrdered()) > 0 &&
-                count($orderModel->getProductsOrdered()) === 0 &&
                 current($orderModel->getDonationOrdered())->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY
             ) {
                 $secret = SubscriptionService::create(
-                    monthlySubscription: current($orderModel->getDonationOrdered()),
-                    customer: $stripeCustomer,
-                    customerModel: $orderModel->getCustomer()
+                    orderModel: $orderModel,
+                    customer : $stripeCustomer
                 );
 
                 return APIManagement::APIOk([
@@ -69,30 +66,7 @@ class CreateOrder extends APIEnpointAbstract
             // avec l'ensemble des produits souhaités avec la quantité.
             // Si la personne a entrée un prix supérieur au prix du produit x quantité , alors la différence est un don unique.
             if(count($orderModel->getProductsOrdered()) > 0) {
-
-                // On vérifie si le prix est cohérent
-                if(!self::checkPriceConsistency($orderModel)) {
-                    throw new \Exception("totalPrice is below required for the total order amount");
-                }
-
-                $productOrderModel = current($orderModel->getProductsOrdered());
-                $stripeProduct = ProductService::getProduct(
-                    key: $productOrderModel->getKey(),
-                    project: $productOrderModel->getProject(),
-                    variant: $productOrderModel->getVariant()
-                );
-
-                $stripeDefaultPrice = StripeService::getStripeClient()->prices->retrieve($stripeProduct->default_price);
-                if($orderModel->getTotalAmount() > $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity()) {
-                    // On rajoute un don unique dans le modèle
-                    $oneShotDonationPrice = $orderModel->getTotalAmount() - $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity();
-                    $oneShotDonation = new DonationOrderModel();
-                    $oneShotDonation
-                        ->setAmount($oneShotDonationPrice)
-                        ->setProject($productOrderModel->getProject())
-                        ->setDonationRecurrency(DonationRecurrencyEnum::ONESHOT->value);
-                    $orderModel->setDonationOrdered([$oneShotDonation]);
-                }
+                self::manageProductOrdered(current($orderModel->getProductsOrdered()), $orderModel);
             }
 
             $invoice = InvoiceService::createCustomerInvoice(
@@ -130,6 +104,32 @@ class CreateOrder extends APIEnpointAbstract
 
         } catch (\Exception $exception) {
             return APIManagement::APIError($exception->getMessage(), 400);
+        }
+    }
+
+    public static function manageProductOrdered(ProductOrderModel $productOrderModel, $orderModel)
+    {
+        // On vérifie si le prix est cohérent
+        if(!self::checkPriceConsistency($orderModel)) {
+            throw new \Exception("totalPrice is below required for the total order amount");
+        }
+
+        $stripeProduct = ProductService::getProduct(
+            key: $productOrderModel->getKey(),
+            project: $productOrderModel->getProject(),
+            variant: $productOrderModel->getVariant()
+        );
+
+        $stripeDefaultPrice = StripeService::getStripeClient()->prices->retrieve($stripeProduct->default_price);
+        if($orderModel->getTotalAmount() > $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity()) {
+            // On rajoute un don unique dans le modèle
+            $oneShotDonationPrice = $orderModel->getTotalAmount() - $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity();
+            $oneShotDonation = new DonationOrderModel();
+            $oneShotDonation
+                ->setAmount($oneShotDonationPrice)
+                ->setProject($productOrderModel->getProject())
+                ->setDonationRecurrency(DonationRecurrencyEnum::ONESHOT->value);
+            $orderModel->setDonationOrdered([$oneShotDonation]);
         }
     }
 

@@ -2,6 +2,7 @@
 
 namespace D4rk0snet\CoralOrder\Listener;
 
+use D4rk0snet\CoralOrder\Model\DonationOrderModel;
 use D4rk0snet\CoralOrder\Model\ProductOrderModel;
 use D4rk0snet\CoralOrder\Service\ProductService;
 use Hyperion\Stripe\Service\StripeService;
@@ -40,6 +41,27 @@ class NewSubscriptionListener
                 'invoice' => $invoice->id
             ]
         );
+
+        // On check si on a pas un don ponctuel
+        if($subscription->metadata['oneshotDonation'] !== null) {
+            /** @var DonationOrderModel $oneshotDonation */
+            $oneshotDonation = $mapper->map(json_decode($subscription->metadata['oneshotDonation'], false, 512, JSON_THROW_ON_ERROR), new DonationOrderModel());
+            $stripeProduct = ProductService::getProduct(
+                key: $oneshotDonation->getDonationRecurrency()->value,
+                project: $productOrder->getProject(),
+            );
+
+            $price = ProductService::getOrCreatePrice($stripeProduct, $oneshotDonation->getAmount());
+
+            StripeService::getStripeClient()->invoiceItems->create(
+                [
+                    'customer' => $subscription->customer,
+                    'price' => $price->id,
+                    'quantity' => 1,
+                    'invoice' => $invoice->id
+                ]
+            );
+        }
 
         $invoice = StripeService::getStripeClient()->invoices->finalizeInvoice($invoice->id);
         StripeService::getStripeClient()->invoices->pay($invoice->id, ['default_payment_method' => $subscription->default_payment_method]);

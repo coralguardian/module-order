@@ -10,6 +10,9 @@
  * Licence: GPLv2
  */
 
+use D4rk0snet\CoralOrder\Listener\NewSubscriptionListener;
 use D4rk0snet\CoralOrder\Plugin;
+use Hyperion\Stripe\Enum\StripeEventEnum;
 
 add_action('plugins_loaded', [Plugin::class,'launchActions']);
+add_action(StripeEventEnum::SUBSCRIPTION_UPDATE->value, [NewSubscriptionListener::class, 'doAction'], 10,1);
