@@ -24,7 +24,12 @@ class NewSubscriptionListener
 
         $productOrder = $mapper->map(json_decode($subscription->metadata['productOrdered'], false, 512, JSON_THROW_ON_ERROR), new ProductOrderModel());
 
-        $invoice = StripeService::getStripeClient()->invoices->create(['customer' => $subscription->customer]);
+        $invoice = StripeService::getStripeClient()->invoices->create(
+            [
+                'customer' => $subscription->customer,
+                'metadata' => $subscription->metadata
+            ]
+        );
 
         // On ajoute le produit souhaité
         $stripeProduct = ProductService::getProduct(

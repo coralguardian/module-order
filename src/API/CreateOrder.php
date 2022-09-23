@@ -69,33 +69,30 @@ class CreateOrder extends APIEnpointAbstract
                 self::manageProductOrdered(current($orderModel->getProductsOrdered()), $orderModel);
             }
 
-            $invoice = InvoiceService::createCustomerInvoice(
-                orderModel: $orderModel,
-                stripeCustomer: $stripeCustomer
-            );
-
-            $stripePaymentIntent = StripeService::getStripeClient()->paymentIntents->retrieve($invoice->payment_intent);
-
-            // Maj des metas du paymentIntent
+            // Maj des metas de l'invoice
             $metadata = [
                 'customer' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR),
                 'language' => $orderModel->getLang()->value
             ];
             if(count($orderModel->getProductsOrdered()) > 0) {
                 $metadata = array_merge($metadata,
-                        [
-                            'productOrdered' => json_encode(current($orderModel->getProductsOrdered()), JSON_THROW_ON_ERROR),
-                            'sendToFriend' => $orderModel->isSendToFriend()
-                        ]);
+                    [
+                        'productOrdered' => json_encode(current($orderModel->getProductsOrdered()), JSON_THROW_ON_ERROR),
+                        'sendToFriend' => $orderModel->isSendToFriend()
+                    ]);
             }
 
             if(count($orderModel->getDonationOrdered()) > 0) {
                 $metadata['donationOrdered'] = json_encode(current($orderModel->getDonationOrdered()), JSON_THROW_ON_ERROR);
             }
 
-            StripeService::getStripeClient()->paymentIntents->update($stripePaymentIntent->id, [
-                'metadata' => $metadata
-            ]);
+            $invoice = InvoiceService::createCustomerInvoice(
+                orderModel: $orderModel,
+                stripeCustomer: $stripeCustomer,
+                metadata : $metadata
+            );
+
+            $stripePaymentIntent = StripeService::getStripeClient()->paymentIntents->retrieve($invoice->payment_intent);
 
             // Si on a des produits adoptable alors on met le modèle dans les metas
             return APIManagement::APIOk([

@@ -12,10 +12,16 @@ class InvoiceService
 {
     public static function createCustomerInvoice(
         OrderModel $orderModel,
-        Customer $stripeCustomer
+        Customer $stripeCustomer,
+        array $metadata
     ) : Invoice
     {
-        $invoice = StripeService::getStripeClient()->invoices->create(['customer' => $stripeCustomer->id]);
+        $invoice = StripeService::getStripeClient()->invoices->create(
+            [
+                'customer' => $stripeCustomer->id,
+                'metadata' => $metadata
+            ]
+        );
 
         // On ajoute le produit souhaité
         if(count($orderModel->getProductsOrdered()) > 0) {
