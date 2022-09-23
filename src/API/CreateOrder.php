@@ -85,7 +85,7 @@ class CreateOrder extends APIEnpointAbstract
                 $metadata = array_merge($metadata,
                         [
                             'productOrdered' => json_encode(current($orderModel->getProductsOrdered()), JSON_THROW_ON_ERROR),
-                            'giftAdoption' => $orderModel->isSendToFriend()
+                            'sendToFriend' => $orderModel->isSendToFriend()
                         ]);
             }
 
