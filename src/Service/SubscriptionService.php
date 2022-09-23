@@ -73,6 +73,7 @@ class SubscriptionService
             'donationOrderedModel' => json_encode($monthlySubscription, JSON_THROW_ON_ERROR)
         ];
 
+        // Mix entre abonnement mensuel et adoption
         if(count($orderModel->getProductsOrdered()) > 0) {
             $productOrderModel = current($orderModel->getProductsOrdered());
 
@@ -84,6 +85,9 @@ class SubscriptionService
             );
 
             $metadata['productOrdered'] = json_encode(current($orderModel->getProductsOrdered()), JSON_THROW_ON_ERROR);
+            if($orderModel->isSendToFriend() !== null) {
+                $metadata['sendToFriend'] = $orderModel->isSendToFriend();
+            }
 
             $stripeDefaultPrice = StripeService::getStripeClient()->prices->retrieve($stripeProduct->default_price);
             if($orderModel->getTotalAmount() - $monthlySubscription->getAmount()  > $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity()) {
