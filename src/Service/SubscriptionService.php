@@ -69,7 +69,7 @@ class SubscriptionService
 
         // Création de l'abonnement
         $metadata = [
-            'customerModel' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR),
+            'customer' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR),
             'donationOrderedModel' => json_encode($monthlySubscription, JSON_THROW_ON_ERROR)
         ];
 

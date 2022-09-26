@@ -27,7 +27,7 @@ class NewSubscriptionListener
         $invoice = StripeService::getStripeClient()->invoices->create(
             [
                 'customer' => $subscription->customer,
-                'metadata' => $subscription->metadata
+                'metadata' => $subscription->metadata->toArray()
             ]
         );
 
