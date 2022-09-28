@@ -64,7 +64,8 @@ class ProductService
      */
     public static function getOrCreatePrice(
         Product $product,
-        int $amount
+        int $amount,
+        bool $isRecurring = false
     ) : Price
     {
         // On recherche tous les prix pour éviter de créer des doublons
@@ -91,6 +92,10 @@ class ProductService
             'currency' => 'eur',
             'product' => $product->id
         ];
+
+        if($isRecurring) {
+            $data['recurring'] = ['interval' => 'month'];
+        }
 
         return StripeService::getStripeClient()->prices->create($data);
     }

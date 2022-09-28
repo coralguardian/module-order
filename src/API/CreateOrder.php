@@ -3,7 +3,6 @@
 namespace D4rk0snet\CoralOrder\API;
 
 use D4rk0snet\CoralOrder\Model\ProductOrderModel;
-use D4rk0snet\CoralOrder\Service\InvoiceService;
 use D4rk0snet\CoralOrder\Enums\CoralOrderEvents;
 use D4rk0snet\CoralOrder\Enums\PaymentMethod;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
@@ -39,6 +38,10 @@ class CreateOrder extends APIEnpointAbstract
             /** @var OrderModel $orderModel */
             $orderModel = $mapper->map($payload, new OrderModel());
 
+            if(count($orderModel->getProductsOrdered()) > 0) {
+                self::manageProductOrdered(current($orderModel->getProductsOrdered()), $orderModel);
+            }
+
             $stripeCustomer = CustomerStripeService::getOrCreateCustomer($orderModel);
 
             if($orderModel->getPaymentMethod() === PaymentMethod::BANK_TRANSFER) {
@@ -46,14 +49,7 @@ class CreateOrder extends APIEnpointAbstract
                 return APIManagement::APIOk();
             }
 
-            // On prépare une facture
-            // avec l'ensemble des produits souhaités avec la quantité.
-            // Si la personne a entrée un prix supérieur au prix du produit x quantité , alors la différence est un don unique.
-            if(count($orderModel->getProductsOrdered()) > 0) {
-                self::manageProductOrdered(current($orderModel->getProductsOrdered()), $orderModel);
-            }
-
-            // Maj des metas de l'invoice
+            // Metadatas
             $metadata = [
                 'customer' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR),
                 'language' => $orderModel->getLang()->value
@@ -71,29 +67,18 @@ class CreateOrder extends APIEnpointAbstract
                 $metadata['donationOrdered'] = json_encode(current($orderModel->getDonationOrdered()), JSON_THROW_ON_ERROR);
             }
 
-            $invoice = InvoiceService::createCustomerInvoice(
-                orderModel: $orderModel,
-                stripeCustomer: $stripeCustomer,
-                metadata : $metadata
-            );
-
-            $stripePaymentIntent = StripeService::getStripeClient()->paymentIntents->retrieve($invoice->payment_intent);
-
-            // Si on a un don mensuel alors on doit retenir le moyen de paiement
-            if(count($orderModel->getDonationOrdered()))
-            {
-                $monthlyDonation = array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donationOrderModel) {
-                    return $donationOrderModel->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
-                });
-                if(count($monthlyDonation) > 0) {
-                    StripeService::getStripeClient()->paymentIntents->update($stripePaymentIntent->id, ['setup_future_usage' => 'off_session']);
-                }
-            }
-
-            return APIManagement::APIOk([
-                "clientSecret" => $stripePaymentIntent->client_secret
+            // On prépare une empreinte de carte sans montant auquel on va rattacher la commande de l'utilisateur.
+            // Par la suite ce sont ces metas qui seront utilisé pour faire les différentes actions.
+            $setupIntent = StripeService::getStripeClient()->setupIntents->create([
+                'confirm' => true,
+                'customer' => $stripeCustomer->id,
+                'usage' => 'off_session',
+                'metadata' => $metadata
             ]);
 
+            return APIManagement::APIOk([
+                "clientSecret" => $setupIntent->client_secret
+            ]);
         } catch (\Exception $exception) {
             return APIManagement::APIError($exception->getMessage(), 400);
         }
@@ -106,6 +91,7 @@ class CreateOrder extends APIEnpointAbstract
             throw new \Exception("totalPrice is below required for the total order amount");
         }
 
+        // On ajoute une don unique exceptionnel si le prix souhaité est supérieurs au prix "normaux" des produits.
         $stripeProduct = ProductService::getProduct(
             key: $productOrderModel->getKey(),
             project: $productOrderModel->getProject(),
@@ -113,7 +99,19 @@ class CreateOrder extends APIEnpointAbstract
         );
 
         $stripeDefaultPrice = StripeService::getStripeClient()->prices->retrieve($stripeProduct->default_price);
-        if($orderModel->getTotalAmount() > $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity()) {
+        $productPriceAmount = $orderModel->getTotalAmount();
+
+        if(count($orderModel->getDonationOrdered()))
+        {
+            $monthlyDonation = array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donationOrderModel) {
+                return $donationOrderModel->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
+            });
+            if(count($monthlyDonation) > 0) {
+                $productPriceAmount -= current($monthlyDonation)->getAmount();
+            }
+        }
+
+        if($productPriceAmount > $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity()) {
             // On rajoute un don unique dans le modèle
             $oneShotDonationPrice = $orderModel->getTotalAmount() - $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity();
             $oneShotDonation = new DonationOrderModel();
@@ -121,7 +119,7 @@ class CreateOrder extends APIEnpointAbstract
                 ->setAmount($oneShotDonationPrice)
                 ->setProject($productOrderModel->getProject())
                 ->setDonationRecurrency(DonationRecurrencyEnum::ONESHOT->value);
-            $orderModel->setDonationOrdered([$oneShotDonation]);
+            $orderModel->setDonationOrdered(array_merge($orderModel->getDonationOrder(),[$oneShotDonation]));
         }
     }
 
