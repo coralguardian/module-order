@@ -2,6 +2,8 @@
 
 namespace D4rk0snet\CoralOrder\Action;
 
+use D4rk0snet\CoralCustomer\Model\CustomerModel;
+use D4rk0snet\CoralOrder\Enums\CoralOrderEvents;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
 use D4rk0snet\CoralOrder\Service\ProductService;
 use D4rk0snet\Donation\Enums\DonationRecurrencyEnum;
@@ -35,6 +37,11 @@ class SubscriptionBilling
                 new DonationOrderModel()
             );
 
+            $customer = $mapper->map(
+                json_decode($setupIntent->metadata['customer'], false, 512, JSON_THROW_ON_ERROR),
+                new CustomerModel()
+            );
+
             $stripeClient = StripeService::getStripeClient();
             $stripeMonthlySubscriptionProduct = ProductService::getProduct(
                 key: $monthlyDonation->getDonationRecurrency()->value,
@@ -48,17 +55,18 @@ class SubscriptionBilling
                 'language' => $setupIntent->metadata['language']
             ];
 
-            $stripeClient->subscriptions->create(
+            $subscription = $stripeClient->subscriptions->create(
                 [
                     'customer' => $setupIntent->customer,
                     'items' => [[
                         'price' => $price->id
                     ]],
+                    'default_payment_method' => $setupIntent->payment_method,
                     'metadata' => $metadata
                 ]
             );
 
-            // @todo: Mettre en place les events
+            do_action(CoralOrderEvents::NEW_MONTHLY_SUBSCRIPTION->value, $monthlyDonation, $customer, $setupIntent->id);
         }
 
     }

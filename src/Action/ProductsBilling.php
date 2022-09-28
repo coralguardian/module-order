@@ -2,6 +2,7 @@
 
 namespace D4rk0snet\CoralOrder\Action;
 
+use D4rk0snet\CoralOrder\Enums\CoralOrderEvents;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
 use D4rk0snet\CoralOrder\Model\ProductOrderModel;
 use D4rk0snet\CoralOrder\Service\ProductService;
@@ -88,6 +89,6 @@ class ProductsBilling
         // On demande le paiement de la facture
         StripeService::getStripeClient()->invoices->pay($invoice->id, ['payment_method' => $setupIntent->payment_method]);
 
-        // @todo: rajouter les events
+        do_action(CoralOrderEvents::NEW_ORDER->value, $setupIntent);
     }
 }
