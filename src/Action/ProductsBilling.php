@@ -53,20 +53,19 @@ class ProductsBilling
 
         // On récupère les dons oneshot
         if($setupIntent->metadata['donationOrdered'] !== null) {
-            /** @var ProductOrderModel $productOrderModel */
-            $donationOrderModel = $mapper->map(
-                json_decode($setupIntent->metadata['donationOrdered'], false, 512, JSON_THROW_ON_ERROR),
-                new DonationOrderModel()
-            );
+            $donations = json_decode($setupIntent->metadata['donationOrdered'], false, 512, JSON_THROW_ON_ERROR);
 
             // On isole un éventuel don oneshot
-            $filterResults = array_filter($donationOrderModel, static function(DonationOrderModel $donationOrderModel) {
-                return $donationOrderModel->getDonationRecurrency() === DonationRecurrencyEnum::ONESHOT;
+            $filterResults = array_filter($donations, static function ($donationOrderData) {
+                return $donationOrderData->donationRecurrency === DonationRecurrencyEnum::ONESHOT->value;
             });
 
-            if(count($filterResults) > 0) {
+            if (count($filterResults) > 0) {
                 /** @var DonationOrderModel $oneshotDonation */
-                $oneshotDonation = current($filterResults);
+                $oneshotDonation = $mapper->map(
+                    current($filterResults),
+                    new DonationOrderModel()
+                );
 
                 $stripeProduct = ProductService::getProduct(
                     key: $oneshotDonation->getDonationRecurrency()->value,
@@ -83,10 +82,11 @@ class ProductsBilling
                     'invoice' => $invoice->id
                 ]);
             }
+
         }
 
         // On demande le paiement de la facture
-        StripeService::getStripeClient()->invoices->pay($invoice->id);
+        StripeService::getStripeClient()->invoices->pay($invoice->id, ['payment_method' => $setupIntent->payment_method]);
 
         // @todo: rajouter les events
     }

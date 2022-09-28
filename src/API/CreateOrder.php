@@ -64,13 +64,12 @@ class CreateOrder extends APIEnpointAbstract
             }
 
             if(count($orderModel->getDonationOrdered()) > 0) {
-                $metadata['donationOrdered'] = json_encode(current($orderModel->getDonationOrdered()), JSON_THROW_ON_ERROR);
+                $metadata['donationOrdered'] = json_encode($orderModel->getDonationOrdered(), JSON_THROW_ON_ERROR);
             }
 
             // On prépare une empreinte de carte sans montant auquel on va rattacher la commande de l'utilisateur.
             // Par la suite ce sont ces metas qui seront utilisé pour faire les différentes actions.
             $setupIntent = StripeService::getStripeClient()->setupIntents->create([
-                'confirm' => true,
                 'customer' => $stripeCustomer->id,
                 'usage' => 'off_session',
                 'metadata' => $metadata
@@ -84,7 +83,7 @@ class CreateOrder extends APIEnpointAbstract
         }
     }
 
-    public static function manageProductOrdered(ProductOrderModel $productOrderModel, $orderModel)
+    public static function manageProductOrdered(ProductOrderModel $productOrderModel, OrderModel $orderModel)
     {
         // On vérifie si le prix est cohérent
         if(!self::checkPriceConsistency($orderModel)) {
@@ -113,13 +112,13 @@ class CreateOrder extends APIEnpointAbstract
 
         if($productPriceAmount > $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity()) {
             // On rajoute un don unique dans le modèle
-            $oneShotDonationPrice = $orderModel->getTotalAmount() - $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity();
+            $oneShotDonationPrice = $productPriceAmount - $stripeDefaultPrice->unit_amount / 100 * $productOrderModel->getQuantity();
             $oneShotDonation = new DonationOrderModel();
             $oneShotDonation
                 ->setAmount($oneShotDonationPrice)
                 ->setProject($productOrderModel->getProject())
                 ->setDonationRecurrency(DonationRecurrencyEnum::ONESHOT->value);
-            $orderModel->setDonationOrdered(array_merge($orderModel->getDonationOrder(),[$oneShotDonation]));
+            $orderModel->setDonationOrdered(array_merge($orderModel->getDonationOrdered(),[$oneShotDonation]));
         }
     }
 

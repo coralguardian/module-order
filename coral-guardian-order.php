@@ -18,6 +18,6 @@ use D4rk0snet\CoralOrder\Plugin;
 use Hyperion\Stripe\Enum\StripeEventEnum;
 
 add_action('plugins_loaded', [Plugin::class,'launchActions']);
-add_action(StripeEventEnum::SETUPINTENT_SUCCESS, [ProductsBilling::class, 'doAction'], 10,1);
-add_action(StripeEventEnum::SETUPINTENT_SUCCESS, [SubscriptionBilling::class, 'doAction'], 10,1);
+add_action(StripeEventEnum::SETUPINTENT_SUCCESS->value, [ProductsBilling::class, 'doAction'], 10,1);
+add_action(StripeEventEnum::SETUPINTENT_SUCCESS->value, [SubscriptionBilling::class, 'doAction'], 10,1);
 add_action(CoralOrderEvents::BANK_TRANSFER_ORDER->value, [CreateBankTransferOrder::class,'doAction'], 10, 2);
