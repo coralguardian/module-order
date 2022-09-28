@@ -47,6 +47,7 @@ class ProductsBilling
             StripeService::getStripeClient()->invoiceItems->create([
                 'customer' => $setupIntent->customer,
                 'currency' => 'eur',
+                'quantity' => $productOrderModel->getQuantity(),
                 'price' => $stripeProduct->default_price,
                 'invoice' => $invoice->id
             ]);
