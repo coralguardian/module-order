@@ -2,6 +2,7 @@
 
 namespace D4rk0snet\CoralOrder\Service;
 
+use D4rk0snet\CoralOrder\Model\DonationOrderModel;
 use D4rk0snet\CoralOrder\Model\OrderModel;
 use D4rk0snet\Donation\Enums\DonationRecurrencyEnum;
 use Hyperion\Stripe\Service\StripeService;
@@ -44,29 +45,36 @@ class InvoiceService
         }
 
         if(count($orderModel->getDonationOrdered()) > 0) {
-            $oneShotDonation = current($orderModel->getDonationOrdered());
-            if ($oneShotDonation->getDonationRecurrency() !== DonationRecurrencyEnum::ONESHOT) {
-                throw new \Exception("Invoice creation aborted. Should only be a oneshot donation here !");
+            // On ne traite que les donation oneshot ici, les monthly seront fait après payement.
+            if(count($orderModel->getDonationOrdered()))
+            {
+                $filterResults = array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donationOrderModel) {
+                    return $donationOrderModel->getDonationRecurrency() === DonationRecurrencyEnum::ONESHOT;
+                });
+
+                if(count($filterResults) > 0) {
+                    $oneShotDonation = current($filterResults);
+
+                    $stripeProduct = ProductService::getProduct(
+                        key: $oneShotDonation->getDonationRecurrency()->value,
+                        project: $oneShotDonation->getProject()
+                    );
+
+                    $stripePrice = ProductService::getOrCreatePrice(
+                        product: $stripeProduct,
+                        amount: $oneShotDonation->getAmount()
+                    );
+
+                    StripeService::getStripeClient()->invoiceItems->create(
+                        [
+                            'customer' => $stripeCustomer->id,
+                            'price' => $stripePrice->id,
+                            'quantity' => 1,
+                            'invoice' => $invoice->id
+                        ]
+                    );
+                }
             }
-
-            $stripeProduct = ProductService::getProduct(
-                key: $oneShotDonation->getDonationRecurrency()->value,
-                project: $oneShotDonation->getProject()
-            );
-
-            $stripePrice = ProductService::getOrCreatePrice(
-                product: $stripeProduct,
-                amount: $oneShotDonation->getAmount()
-            );
-
-            StripeService::getStripeClient()->invoiceItems->create(
-                [
-                    'customer' => $stripeCustomer->id,
-                    'price' => $stripePrice->id,
-                    'quantity' => 1,
-                    'invoice' => $invoice->id
-                ]
-            );
         }
 
         return StripeService::getStripeClient()->invoices->finalizeInvoice($invoice->id);

@@ -4,7 +4,6 @@ namespace D4rk0snet\CoralOrder\API;
 
 use D4rk0snet\CoralOrder\Model\ProductOrderModel;
 use D4rk0snet\CoralOrder\Service\InvoiceService;
-use D4rk0snet\CoralOrder\Service\SubscriptionService;
 use D4rk0snet\CoralOrder\Enums\CoralOrderEvents;
 use D4rk0snet\CoralOrder\Enums\PaymentMethod;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
@@ -47,22 +46,7 @@ class CreateOrder extends APIEnpointAbstract
                 return APIManagement::APIOk();
             }
 
-            // Si on a un abonnement mensuel, on prépare la subscription qui aura le secret.
-            if(
-                count($orderModel->getDonationOrdered()) > 0 &&
-                current($orderModel->getDonationOrdered())->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY
-            ) {
-                $secret = SubscriptionService::create(
-                    orderModel: $orderModel,
-                    customer : $stripeCustomer
-                );
-
-                return APIManagement::APIOk([
-                    "clientSecret" => $secret
-                ]);
-            }
-
-            // Si on a juste un achat de produits (coraux, récifs, don ponctuel), on prépare une facture
+            // On prépare une facture
             // avec l'ensemble des produits souhaités avec la quantité.
             // Si la personne a entrée un prix supérieur au prix du produit x quantité , alors la différence est un don unique.
             if(count($orderModel->getProductsOrdered()) > 0) {
@@ -74,6 +58,7 @@ class CreateOrder extends APIEnpointAbstract
                 'customer' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR),
                 'language' => $orderModel->getLang()->value
             ];
+
             if(count($orderModel->getProductsOrdered()) > 0) {
                 $metadata = array_merge($metadata,
                     [
@@ -94,7 +79,17 @@ class CreateOrder extends APIEnpointAbstract
 
             $stripePaymentIntent = StripeService::getStripeClient()->paymentIntents->retrieve($invoice->payment_intent);
 
-            // Si on a des produits adoptable alors on met le modèle dans les metas
+            // Si on a un don mensuel alors on doit retenir le moyen de paiement
+            if(count($orderModel->getDonationOrdered()))
+            {
+                $monthlyDonation = array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donationOrderModel) {
+                    return $donationOrderModel->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
+                });
+                if(count($monthlyDonation) > 0) {
+                    StripeService::getStripeClient()->paymentIntents->update($stripePaymentIntent->id, ['setup_future_usage' => 'off_session']);
+                }
+            }
+
             return APIManagement::APIOk([
                 "clientSecret" => $stripePaymentIntent->client_secret
             ]);

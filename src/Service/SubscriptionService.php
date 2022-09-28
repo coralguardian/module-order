@@ -29,50 +29,7 @@ class SubscriptionService
         $stripeClient = StripeService::getStripeClient();
         $monthlySubscription = current($orderModel->getDonationOrdered());
 
-        // recherche du produit dans stripe
-        $searchModel = new ProductSearchModel(
-            active: 'true',
-            metadata: [
-                'key' => $monthlySubscription->getDonationRecurrency()->value,
-                'project' => $monthlySubscription->getProject()
-            ]
-        );
 
-        $products = $stripeClient->products->search(['query' => (string) $searchModel]);
-        if($products->count() === 0) {
-            throw new \Exception("Unable to find the monthly donation product !. Subscription aborted.");
-        }
-
-        $stripeMonthlySubscriptionProduct = $products->first();
-
-        // On recherche les prix déjà disponibles pour ce produit pour éviter d'en créer d'autres similaires
-        // et donc inutiles.
-        $stripeMonthlySubscriptionPrices = $stripeClient->prices->all([
-            'product' => $stripeMonthlySubscriptionProduct->id,
-            'active' => true,
-        ]);
-        $matchingStripePrices = array_filter($stripeMonthlySubscriptionPrices->data, static function(Price $price) use ($monthlySubscription) {
-            return $price->unit_amount === (int) $monthlySubscription->getAmount() * 100;
-        });
-
-        if(count($matchingStripePrices) === 0) {
-            // On crée un nouveau prix puisqu'on ne l'a pas trouvé.
-            $price = $stripeClient->prices->create([
-                'unit_amount' => $monthlySubscription->getAmount() * 100,
-                'currency' => 'eur',
-                'recurring' => ['interval' => 'month'],
-                'product' => $stripeMonthlySubscriptionProduct->id
-            ]);
-        } else {
-            $price = current($matchingStripePrices);
-        }
-
-        // Création de l'abonnement
-        $metadata = [
-            'customer' => json_encode($orderModel->getCustomer(), JSON_THROW_ON_ERROR),
-            'donationOrdered' => json_encode($monthlySubscription, JSON_THROW_ON_ERROR),
-            'language' => $orderModel->getLang()->value
-        ];
 
         // Mix entre abonnement mensuel et adoption
         if(count($orderModel->getProductsOrdered()) > 0) {
