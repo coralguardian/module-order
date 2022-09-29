@@ -48,14 +48,14 @@ class SubscriptionBilling
                 project: $monthlyDonation->getProject()
             );
 
-            $price = ProductService::getOrCreatePrice($stripeMonthlySubscriptionProduct, $monthlyDonation->getAmount());
+            $price = ProductService::getOrCreatePrice($stripeMonthlySubscriptionProduct, $monthlyDonation->getAmount(), true);
 
             // Création de l'abonnement
             $metadata = [
                 'language' => $setupIntent->metadata['language']
             ];
 
-            $subscription = $stripeClient->subscriptions->create(
+            $stripeClient->subscriptions->create(
                 [
                     'customer' => $setupIntent->customer,
                     'items' => [[
