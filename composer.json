@@ -27,8 +27,8 @@
     ],
     "require" :
       {
-        "hyperion/stripe"  : "dev-dev",
-        "hyperion/restapi" : "dev-dev",
+        "hyperion/stripe"  : "1.*",
+        "hyperion/restapi" : "1.*",
         "netresearch/jsonmapper" : "4.*"
       }
 }
