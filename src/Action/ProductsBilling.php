@@ -62,29 +62,30 @@ class ProductsBilling
                 return $donationOrderData->donationRecurrency === DonationRecurrencyEnum::ONESHOT->value;
             });
 
-            if (count($filterResults) > 0) {
-                /** @var DonationOrderModel $oneshotDonation */
-                $oneshotDonation = $mapper->map(
-                    current($filterResults),
-                    new DonationOrderModel()
-                );
-
-                $stripeProduct = ProductService::getProduct(
-                    key: $oneshotDonation->getDonationRecurrency()->value,
-                    project: $oneshotDonation->getProject()
-                );
-
-                // Est ce que l'on a déjà un même prix dans stripe ?
-                $price = ProductService::getOrCreatePrice($stripeProduct, $oneshotDonation->getAmount());
-
-                StripeService::getStripeClient()->invoiceItems->create([
-                    'customer' => $setupIntent->customer,
-                    'currency' => 'eur',
-                    'price' => $price->id,
-                    'invoice' => $invoice->id
-                ]);
+            if(count($filterResults) === 0) {
+                return;
             }
 
+            /** @var DonationOrderModel $oneshotDonation */
+            $oneshotDonation = $mapper->map(
+                current($filterResults),
+                new DonationOrderModel()
+            );
+
+            $stripeProduct = ProductService::getProduct(
+                key: $oneshotDonation->getDonationRecurrency()->value,
+                project: $oneshotDonation->getProject()
+            );
+
+            // Est ce que l'on a déjà un même prix dans stripe ?
+            $price = ProductService::getOrCreatePrice($stripeProduct, $oneshotDonation->getAmount());
+
+            StripeService::getStripeClient()->invoiceItems->create([
+                'customer' => $setupIntent->customer,
+                'currency' => 'eur',
+                'price' => $price->id,
+                'invoice' => $invoice->id
+            ]);
         }
 
         // On demande le paiement de la facture
