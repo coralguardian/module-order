@@ -2,6 +2,7 @@
 
 namespace D4rk0snet\CoralOrder\Action;
 
+use D4rk0snet\CoralCustomer\Model\CustomerModel;
 use D4rk0snet\CoralOrder\Enums\CoralOrderEvents;
 use D4rk0snet\CoralOrder\Model\DonationOrderModel;
 use D4rk0snet\CoralOrder\Model\ProductOrderModel;
@@ -15,6 +16,9 @@ class ProductsBilling
 {
     public static function doAction(SetupIntent $setupIntent) : void
     {
+        /**
+         * Cette classe va gérer l'adoption de coraux mais AUSSI les dons ponctuels
+         */
         if($setupIntent->metadata['productOrdered'] === null && $setupIntent->metadata['donationOrdered'] === null) {
             return;
         }
@@ -51,6 +55,11 @@ class ProductsBilling
                 'price' => $stripeProduct->default_price,
                 'invoice' => $invoice->id
             ]);
+
+            // On demande le paiement de la facture
+            StripeService::getStripeClient()->invoices->pay($invoice->id, ['payment_method' => $setupIntent->payment_method]);
+
+            do_action(CoralOrderEvents::NEW_ORDER->value, $setupIntent);
         }
 
         // On récupère les dons oneshot
@@ -72,6 +81,11 @@ class ProductsBilling
                 new DonationOrderModel()
             );
 
+            $customer = $mapper->map(
+                json_decode($setupIntent->customer, false, 512, JSON_THROW_ON_ERROR),
+                new CustomerModel()
+            );
+
             $stripeProduct = ProductService::getProduct(
                 key: $oneshotDonation->getDonationRecurrency()->value,
                 project: $oneshotDonation->getProject()
@@ -86,11 +100,14 @@ class ProductsBilling
                 'price' => $price->id,
                 'invoice' => $invoice->id
             ]);
+
+            // On demande le paiement de la facture
+            StripeService::getStripeClient()->invoices->pay($invoice->id, ['payment_method' => $setupIntent->payment_method]);
+
+            do_action(CoralOrderEvents::NEW_DONATION->value, $oneshotDonation, $customer, $setupIntent->id);
         }
 
-        // On demande le paiement de la facture
-        StripeService::getStripeClient()->invoices->pay($invoice->id, ['payment_method' => $setupIntent->payment_method]);
 
-        do_action(CoralOrderEvents::NEW_ORDER->value, $setupIntent);
+
     }
 }
