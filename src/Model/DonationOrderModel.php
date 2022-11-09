@@ -20,6 +20,8 @@ class DonationOrderModel implements \JsonSerializable
     /** @required */
     private string $project;
 
+    private bool $isExtra = false;
+
     public function afterMapping()
     {
         if($this->getAmount() <= 0) {
@@ -65,12 +67,24 @@ class DonationOrderModel implements \JsonSerializable
         return $this;
     }
 
+    public function isExtra(): bool
+    {
+        return $this->isExtra;
+    }
+
+    public function setIsExtra(bool $isExtra): DonationOrderModel
+    {
+        $this->isExtra = $isExtra;
+        return $this;
+    }
+
     public function jsonSerialize()
     {
         return [
             'amount' => $this->getAmount(),
             'donationRecurrency' => $this->getDonationRecurrency()->value,
-            'project' => $this->getProject()
+            'project' => $this->getProject(),
+            'isExtra' => $this->isExtra()
         ];
     }
 }

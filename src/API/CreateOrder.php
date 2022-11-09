@@ -117,7 +117,8 @@ class CreateOrder extends APIEnpointAbstract
             $oneShotDonation
                 ->setAmount($oneShotDonationPrice)
                 ->setProject($productOrderModel->getProject())
-                ->setDonationRecurrency(DonationRecurrencyEnum::ONESHOT->value);
+                ->setDonationRecurrency(DonationRecurrencyEnum::ONESHOT->value)
+                ->setIsExtra(true);
             $orderModel->setDonationOrdered(array_merge($orderModel->getDonationOrdered(),[$oneShotDonation]));
         }
     }

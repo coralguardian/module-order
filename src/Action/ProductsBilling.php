@@ -55,11 +55,6 @@ class ProductsBilling
                 'price' => $stripeProduct->default_price,
                 'invoice' => $invoice->id
             ]);
-
-            // On demande le paiement de la facture
-            StripeService::getStripeClient()->invoices->pay($invoice->id, ['payment_method' => $setupIntent->payment_method]);
-
-            do_action(CoralOrderEvents::NEW_ORDER->value, $setupIntent);
         }
 
         // On récupère les dons oneshot
@@ -71,43 +66,58 @@ class ProductsBilling
                 return $donationOrderData->donationRecurrency === DonationRecurrencyEnum::ONESHOT->value;
             });
 
-            if(count($filterResults) === 0) {
-                return;
+            /**
+             * On peut avoir plusieurs dons oneshot
+             * - Un qui proviendrait d'une réponse à la demande dans le formulaire
+             * - Un autre qui proviendrait que la personne a modifié le prix global du corail/récif.
+             */
+            foreach($filterResults as $donationOrderData) {
+                /** @var DonationOrderModel $oneshotDonation */
+                $oneshotDonation = $mapper->map(
+                    $donationOrderData,
+                    new DonationOrderModel()
+                );
+
+                $stripeProduct = ProductService::getProduct(
+                    key: $oneshotDonation->getDonationRecurrency()->value,
+                    project: $oneshotDonation->getProject()
+                );
+
+                // Est ce que l'on a déjà un même prix dans stripe ?
+                $price = ProductService::getOrCreatePrice($stripeProduct, $oneshotDonation->getAmount());
+
+                StripeService::getStripeClient()->invoiceItems->create([
+                    'customer' => $setupIntent->customer,
+                    'currency' => 'eur',
+                    'price' => $price->id,
+                    'invoice' => $invoice->id
+                ]);
             }
-
-            /** @var DonationOrderModel $oneshotDonation */
-            $oneshotDonation = $mapper->map(
-                current($filterResults),
-                new DonationOrderModel()
-            );
-
-            $customer = $mapper->map(
-                json_decode($setupIntent->customer, false, 512, JSON_THROW_ON_ERROR),
-                new CustomerModel()
-            );
-
-            $stripeProduct = ProductService::getProduct(
-                key: $oneshotDonation->getDonationRecurrency()->value,
-                project: $oneshotDonation->getProject()
-            );
-
-            // Est ce que l'on a déjà un même prix dans stripe ?
-            $price = ProductService::getOrCreatePrice($stripeProduct, $oneshotDonation->getAmount());
-
-            StripeService::getStripeClient()->invoiceItems->create([
-                'customer' => $setupIntent->customer,
-                'currency' => 'eur',
-                'price' => $price->id,
-                'invoice' => $invoice->id
-            ]);
-
-            // On demande le paiement de la facture
-            StripeService::getStripeClient()->invoices->pay($invoice->id, ['payment_method' => $setupIntent->payment_method]);
-
-            do_action(CoralOrderEvents::NEW_DONATION->value, $oneshotDonation, $customer, $setupIntent->id);
         }
 
+        // On demande le paiement de la facture
+        StripeService::getStripeClient()->invoices->pay($invoice->id, ['payment_method' => $setupIntent->payment_method]);
 
+        if($setupIntent->metadata['productOrdered'] !== null) {
+            do_action(CoralOrderEvents::NEW_ORDER->value, $setupIntent);
+        }
 
+        // On traite chaque don
+        if($setupIntent->metadata['donationOrdered'] !== null && count($filterResults) > 0)
+        {
+            foreach($filterResults as $donationOrderData) {
+                $oneshotDonation = $mapper->map(
+                    $donationOrderData,
+                    new DonationOrderModel()
+                );
+
+                $customer = $mapper->map(
+                    json_decode($setupIntent->metadata['customer'], false, 512, JSON_THROW_ON_ERROR),
+                    new CustomerModel()
+                );
+
+                do_action(CoralOrderEvents::NEW_DONATION->value, $oneshotDonation, $customer, $setupIntent->id);
+            }
+        }
     }
 }
