@@ -42,12 +42,12 @@ class CreateOrder extends APIEnpointAbstract
                 self::manageProductOrdered(current($orderModel->getProductsOrdered()), $orderModel);
             }
 
-            $stripeCustomer = CustomerStripeService::getOrCreateCustomer($orderModel);
-
             if($orderModel->getPaymentMethod() === PaymentMethod::BANK_TRANSFER) {
                 do_action(CoralOrderEvents::BANK_TRANSFER_ORDER->value, $orderModel);
                 return APIManagement::APIOk();
             }
+
+            $stripeCustomer = CustomerStripeService::getOrCreateCustomer($orderModel);
 
             // Metadatas
             $metadata = [
@@ -117,7 +117,8 @@ class CreateOrder extends APIEnpointAbstract
             $oneShotDonation
                 ->setAmount($oneShotDonationPrice)
                 ->setProject($productOrderModel->getProject())
-                ->setDonationRecurrency(DonationRecurrencyEnum::ONESHOT->value);
+                ->setDonationRecurrency(DonationRecurrencyEnum::ONESHOT->value)
+                ->setIsExtra(true);
             $orderModel->setDonationOrdered(array_merge($orderModel->getDonationOrdered(),[$oneShotDonation]));
         }
     }
