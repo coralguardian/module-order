@@ -42,12 +42,12 @@ class CreateOrder extends APIEnpointAbstract
                 self::manageProductOrdered(current($orderModel->getProductsOrdered()), $orderModel);
             }
 
-            $stripeCustomer = CustomerStripeService::getOrCreateCustomer($orderModel);
-
             if($orderModel->getPaymentMethod() === PaymentMethod::BANK_TRANSFER) {
                 do_action(CoralOrderEvents::BANK_TRANSFER_ORDER->value, $orderModel);
                 return APIManagement::APIOk();
             }
+
+            $stripeCustomer = CustomerStripeService::getOrCreateCustomer($orderModel);
 
             // Metadatas
             $metadata = [
