@@ -28,7 +28,7 @@
     "require" :
       {
         "hyperion/stripe"  : "dev-dev",
-        "hyperion/restapi" : "dev-dev",
+        "wordpress-hyperion/restapi" : "dev-dev",
         "netresearch/jsonmapper" : "4.*"
       }
 }
