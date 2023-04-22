@@ -13,8 +13,8 @@ class ProductOrderModel implements \JsonSerializable
     /** @required */
     private string $project;
 
-    private ?SelfAdoptionModel $selfAdoptionModel;
-    private ?GiftModel $giftModel;
+    private ?SelfAdoptionModel $selfAdoptionModel = null;
+    private ?GiftModel $giftModel = null;
 
     private ?string $variant = null;
 

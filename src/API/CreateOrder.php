@@ -62,7 +62,7 @@ class CreateOrder extends APIEnpointAbstract
                     ]);
             }
 
-            if(count($orderModel->getDonationOrdered()) > 0) {
+            if(!is_null($orderModel->getDonationOrdered()) && count($orderModel->getDonationOrdered()) > 0) {
                 $metadata['donationOrdered'] = json_encode($orderModel->getDonationOrdered(), JSON_THROW_ON_ERROR);
             }
 
@@ -99,7 +99,7 @@ class CreateOrder extends APIEnpointAbstract
         $stripeDefaultPrice = StripeService::getStripeClient()->prices->retrieve($stripeProduct->default_price);
         $productPriceAmount = $orderModel->getTotalAmount();
 
-        if(count($orderModel->getDonationOrdered()))
+        if(!is_null($orderModel->getDonationOrdered()) && count($orderModel->getDonationOrdered()))
         {
             $monthlyDonation = array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donationOrderModel) {
                 return $donationOrderModel->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;

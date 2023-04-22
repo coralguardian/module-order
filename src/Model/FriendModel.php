@@ -2,7 +2,7 @@
 
 namespace D4rk0snet\CoralOrder\Model;
 
-class FriendModel implements \JsonSerializable
+class frienFriendModel implements \JsonSerializable
 {
     /** @required */
     private string $friendFirstname;
