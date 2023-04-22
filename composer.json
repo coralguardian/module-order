@@ -13,22 +13,10 @@
             "email": "gregory@d4rk0s.net"
         }
     ],
-    "repositories": [
-      {
-        "type" : "vcs",
-        "url": "git@github.com:ds-hyperion/stripe.git",
-        "no-api": true
-      },
-      {
-        "type" : "vcs",
-        "url": "git@github.com:ds-hyperion/restapi.git",
-        "no-api": true
-      }
-    ],
     "require" :
       {
-        "hyperion/stripe"  : "dev-dev",
-        "wordpress-hyperion/restapi" : "dev-dev",
+        "wordpress-hyperion/stripe"  : "^1.0",
+        "wordpress-hyperion/restapi" : "^1.0",
         "netresearch/jsonmapper" : "4.*"
       }
 }
