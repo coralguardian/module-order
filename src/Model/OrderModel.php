@@ -11,16 +11,14 @@ class OrderModel implements \JsonSerializable
 {
     /** @required  */
     private CustomerModel $customer;
-    /** @var ProductOrderModel[] */
-    private array $productsOrdered = [];
+    private ?ProductOrderModel $productsOrdered = null;
     /** @var DonationOrderModel[] */
-    private array $donationOrdered = [];
+    private ?array $donationOrdered = null;
     /** @required */
     private PaymentMethod $paymentMethod;
     /** @required */
     private Language $lang;
     private ?float $totalAmount = null;
-    private ?bool $sendToFriend = null;
 
     public function afterMapping()
     {
@@ -28,7 +26,7 @@ class OrderModel implements \JsonSerializable
             throw new \Exception("products or donations are required");
         }
 
-        if($this->getProductsOrdered() && $this->getTotalAmount() === null) {
+        if(is_null($this->getTotalAmount()) && !is_null($this->getProductsOrdered())) {
             throw new \Exception("Totalamount is required when products are ordered");
         }
     }
@@ -44,18 +42,12 @@ class OrderModel implements \JsonSerializable
         return $this;
     }
 
-    /**
-     * @return \D4rk0snet\CoralOrder\Model\ProductOrderModel[]
-     */
-    public function getProductsOrdered(): array
+    public function getProductsOrdered(): ?ProductOrderModel
     {
         return $this->productsOrdered;
     }
 
-    /**
-     * @param \D4rk0snet\CoralOrder\Model\ProductOrderModel[]
-     */
-    public function setProductsOrdered(array $productsOrdered): OrderModel
+    public function setProductsOrdered(ProductOrderModel $productsOrdered): OrderModel
     {
         $this->productsOrdered = $productsOrdered;
         return $this;
@@ -73,15 +65,16 @@ class OrderModel implements \JsonSerializable
     }
 
     /**
-     * @return \D4rk0snet\CoralOrder\Model\DonationOrderModel[]
+     * @return DonationOrderModel[] | null
      */
-    public function getDonationOrdered(): array
+    public function getDonationOrdered(): ?array
     {
         return $this->donationOrdered;
     }
 
     /**
-     * @param \D4rk0snet\CoralOrder\Model\DonationOrderModel[]
+     * @param DonationOrderModel[]
+     * @return OrderModel
      */
     public function setDonationOrdered(array $donationOrdered): OrderModel
     {
@@ -120,32 +113,14 @@ class OrderModel implements \JsonSerializable
         }
     }
 
-    public function isSendToFriend(): ?bool
-    {
-        return $this->sendToFriend;
-    }
-
-    public function setSendToFriend(?bool $sendToFriend): OrderModel
-    {
-        $this->sendToFriend = $sendToFriend;
-        return $this;
-    }
-
     public function jsonSerialize()
     {
         $result = [];
 
         $result['customer'] = $this->getCustomer()->jsonSerialize();
+        $result['productsOrdered'] = $this->getProductsOrdered()?->jsonSerialize();
 
-        if($this->getProductsOrdered()) {
-            $result['productsOrdered'] = [];
-            /** @var ProductOrderModel $product */
-            foreach($this->getProductsOrdered() as $product) {
-                $result['productsOrdered'][] = $product->jsonSerialize();
-            }
-        }
-
-        if($this->getDonationOrdered()) {
+        if(is_array($this->getDonationOrdered())) {
             $result['donationOrdered'] = [];
             /** @var DonationOrderModel $donation */
             foreach($this->getDonationOrdered() as $donation) {
@@ -156,7 +131,6 @@ class OrderModel implements \JsonSerializable
         $result['paymentMethod'] = $this->getPaymentMethod()->value;
         $result['totalAmount'] = $this->getTotalAmount();
         $result['lang'] = $this->getLang()->value;
-        $result['sendToFriend'] = $this->isSendToFriend();
 
         return $result;
     }
