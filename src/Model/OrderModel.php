@@ -11,13 +11,15 @@ class OrderModel implements \JsonSerializable
 {
     /** @required  */
     private CustomerModel $customer;
+    /** @var ProductOrderModel|null */
     private ?ProductOrderModel $productsOrdered = null;
-    /** @var DonationOrderModel[] */
+    /** @var DonationOrderModel[]|null */
     private ?array $donationOrdered = null;
     /** @required */
     private PaymentMethod $paymentMethod;
     /** @required */
     private Language $lang;
+    /** @var float|null */
     private ?float $totalAmount = null;
 
     public function afterMapping()
@@ -47,7 +49,7 @@ class OrderModel implements \JsonSerializable
         return $this->productsOrdered;
     }
 
-    public function setProductsOrdered(ProductOrderModel $productsOrdered): OrderModel
+    public function setProductsOrdered(?ProductOrderModel $productsOrdered): OrderModel
     {
         $this->productsOrdered = $productsOrdered;
         return $this;
