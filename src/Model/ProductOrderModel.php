@@ -112,7 +112,7 @@ class ProductOrderModel implements \JsonSerializable
         }
 
         if(!is_null($this->getSelfAdoptionModel())) {
-            $results['selfAdoption'] = $this->getSelfAdoptionModel()->jsonSerialize();
+            $results['selfAdoptionModel'] = $this->getSelfAdoptionModel()->jsonSerialize();
         }
 
         return $results;
