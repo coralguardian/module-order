@@ -10,7 +10,7 @@ class GiftModel implements \JsonSerializable
     private array $friends = [];
     private ?DateTime $sendOn = null;
     private ?string $message = null;
-    private bool $sendToFriend = true;
+    private bool $sendToFriend;
 
     /**
      * @return \D4rk0snet\CoralOrder\Model\FriendModel[]
