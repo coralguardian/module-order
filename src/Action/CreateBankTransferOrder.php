@@ -25,7 +25,7 @@ class CreateBankTransferOrder
         if ($orderModel->getProductsOrdered()) {
             $product = $orderModel->getProductsOrdered();
 
-            if ($orderModel->isSendToFriend() !== null) {
+            if (!is_null($product->getGiftModel())) {
                 // GiftAdoption
                 $giftAdoptionModel = new GiftAdoptionModel();
                 $giftAdoptionModel
@@ -37,7 +37,7 @@ class CreateBankTransferOrder
                     ->setAdoptedProduct(AdoptedProduct::from($product->getFullKey()))
                     ->setQuantity($product->getQuantity())
                     ->setProject(Project::from($product->getProject()))
-                    ->setSendToFriend($orderModel->isSendToFriend());
+                    ->setSendToFriend($product->getGiftModel()->isSendToFriend());
 
                 do_action(CoralAdoptionActions::PENDING_GIFT_ADOPTION->value, $giftAdoptionModel);
             } else {
