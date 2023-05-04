@@ -15,8 +15,8 @@
     ],
     "require" :
       {
-        "wordpress-hyperion/stripe"  : "^1.0",
-        "wordpress-hyperion/restapi" : "^1.0",
+        "wordpress-hyperion/stripe"  : "1.*",
+        "wordpress-hyperion/restapi" : "1.*",
         "netresearch/jsonmapper" : "4.*"
       }
 }
