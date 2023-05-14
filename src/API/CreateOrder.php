@@ -162,4 +162,9 @@ class CreateOrder extends APIEnpointAbstract
     {
         return "createOrder";
     }
+
+    public static function isAuthentificationRequired(): bool
+    {
+        return true;
+    }
 }
