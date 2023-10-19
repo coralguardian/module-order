@@ -47,8 +47,8 @@ class FriendModel implements \JsonSerializable
     public function jsonSerialize() : array
     {
         return [
-            'friendFirstName' => $this->getFriendFirstname(),
-            'friendLastName' => $this->getFriendLastname(),
+            'friendFirstname' => $this->getFriendFirstname(),
+            'friendLastname' => $this->getFriendLastname(),
             'friendEmail' => $this->getFriendEmail(),
         ];
     }

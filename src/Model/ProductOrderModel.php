@@ -13,6 +13,9 @@ class ProductOrderModel implements \JsonSerializable
     /** @required */
     private string $project;
 
+    private ?SelfAdoptionModel $selfAdoptionModel = null;
+    private ?GiftModel $giftModel = null;
+
     private ?string $variant = null;
 
     public function afterMapping()
@@ -75,13 +78,43 @@ class ProductOrderModel implements \JsonSerializable
         return $this;
     }
 
+    public function getSelfAdoptionModel(): ?SelfAdoptionModel
+    {
+        return $this->selfAdoptionModel;
+    }
+
+    public function setSelfAdoptionModel(?SelfAdoptionModel $selfAdoptionModel): void
+    {
+        $this->selfAdoptionModel = $selfAdoptionModel;
+    }
+
+    public function getGiftModel(): ?GiftModel
+    {
+        return $this->giftModel;
+    }
+
+    public function setGiftModel(?GiftModel $giftModel): void
+    {
+        $this->giftModel = $giftModel;
+    }
+
     public function jsonSerialize()
     {
-        return [
+        $results = [
             'key' => $this->getKey(),
             'quantity' => $this->getQuantity(),
             'project' => $this->getProject(),
             'variant' => $this->getVariant()
         ];
+
+        if(!is_null($this->getGiftModel())) {
+            $results['giftModel'] = $this->getGiftModel()->jsonSerialize();
+        }
+
+        if(!is_null($this->getSelfAdoptionModel())) {
+            $results['selfAdoptionModel'] = $this->getSelfAdoptionModel()->jsonSerialize();
+        }
+
+        return $results;
     }
 }

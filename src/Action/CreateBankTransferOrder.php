@@ -18,15 +18,14 @@ class CreateBankTransferOrder
 {
     public static function doAction(OrderModel $orderModel)
     {
-        if (count($orderModel->getDonationOrdered()) > 0 && count($orderModel->getProductsOrdered()) > 0) {
+        if (count($orderModel->getDonationOrdered()) > 0 && !is_null($orderModel->getProductsOrdered())) {
             return APIManagement::APIError("You can't pay for adoption and recurrentDonation as the same time by Bank Transfer.", 500);
         }
 
-        if (count($orderModel->getProductsOrdered()) > 0) {
+        if ($orderModel->getProductsOrdered()) {
+            $product = $orderModel->getProductsOrdered();
 
-            $product = current($orderModel->getProductsOrdered());
-
-            if ($orderModel->isSendToFriend() !== null) {
+            if (!is_null($product->getGiftModel())) {
                 // GiftAdoption
                 $giftAdoptionModel = new GiftAdoptionModel();
                 $giftAdoptionModel
@@ -38,7 +37,7 @@ class CreateBankTransferOrder
                     ->setAdoptedProduct(AdoptedProduct::from($product->getFullKey()))
                     ->setQuantity($product->getQuantity())
                     ->setProject(Project::from($product->getProject()))
-                    ->setSendToFriend($orderModel->isSendToFriend());
+                    ->setSendToFriend($product->getGiftModel()->isSendToFriend());
 
                 do_action(CoralAdoptionActions::PENDING_GIFT_ADOPTION->value, $giftAdoptionModel);
             } else {

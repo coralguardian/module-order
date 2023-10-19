@@ -38,8 +38,8 @@ class CreateOrder extends APIEnpointAbstract
             /** @var OrderModel $orderModel */
             $orderModel = $mapper->map($payload, new OrderModel());
 
-            if(count($orderModel->getProductsOrdered()) > 0) {
-                self::manageProductOrdered(current($orderModel->getProductsOrdered()), $orderModel);
+            if(!is_null($orderModel->getProductsOrdered())) {
+                self::manageProductOrdered($orderModel->getProductsOrdered(), $orderModel);
             }
 
             if($orderModel->getPaymentMethod() === PaymentMethod::BANK_TRANSFER) {
@@ -55,15 +55,14 @@ class CreateOrder extends APIEnpointAbstract
                 'language' => $orderModel->getLang()->value
             ];
 
-            if(count($orderModel->getProductsOrdered()) > 0) {
+            if(!is_null($orderModel->getProductsOrdered())) {
                 $metadata = array_merge($metadata,
                     [
-                        'productOrdered' => json_encode(current($orderModel->getProductsOrdered()), JSON_THROW_ON_ERROR),
-                        'sendToFriend' => $orderModel->isSendToFriend()
+                        'productOrdered' => json_encode($orderModel->getProductsOrdered(), JSON_THROW_ON_ERROR),
                     ]);
             }
 
-            if(count($orderModel->getDonationOrdered()) > 0) {
+            if(!is_null($orderModel->getDonationOrdered()) && count($orderModel->getDonationOrdered()) > 0) {
                 $metadata['donationOrdered'] = json_encode($orderModel->getDonationOrdered(), JSON_THROW_ON_ERROR);
             }
 
@@ -90,7 +89,7 @@ class CreateOrder extends APIEnpointAbstract
             throw new \Exception("totalPrice is below required for the total order amount");
         }
 
-        // On ajoute une don unique exceptionnel si le prix souhaité est supérieurs au prix "normaux" des produits.
+        // On ajoute un don unique exceptionnel si le prix souhaité est supérieurs au prix "normaux" des produits.
         $stripeProduct = ProductService::getProduct(
             key: $productOrderModel->getKey(),
             project: $productOrderModel->getProject(),
@@ -100,7 +99,7 @@ class CreateOrder extends APIEnpointAbstract
         $stripeDefaultPrice = StripeService::getStripeClient()->prices->retrieve($stripeProduct->default_price);
         $productPriceAmount = $orderModel->getTotalAmount();
 
-        if(count($orderModel->getDonationOrdered()))
+        if(!is_null($orderModel->getDonationOrdered()) && count($orderModel->getDonationOrdered()))
         {
             $monthlyDonation = array_filter($orderModel->getDonationOrdered(), function(DonationOrderModel $donationOrderModel) {
                 return $donationOrderModel->getDonationRecurrency() === DonationRecurrencyEnum::MONTHLY;
@@ -132,11 +131,11 @@ class CreateOrder extends APIEnpointAbstract
      */
     private static function checkPriceConsistency(OrderModel $orderModel) : bool
     {
-        if(count($orderModel->getProductsOrdered()) === 0) {
+        if(is_null($orderModel->getProductsOrdered())) {
             throw new \Exception("Not able to check price consistency : no products");
         }
 
-        $productOrderModel = current($orderModel->getProductsOrdered());
+        $productOrderModel = $orderModel->getProductsOrdered();
         $stripeProduct = ProductService::getProduct(
             key: $productOrderModel->getKey(),
             project: $productOrderModel->getProject(),
