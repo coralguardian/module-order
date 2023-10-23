@@ -66,7 +66,7 @@ class GiftModel implements \JsonSerializable
     {
         $returnedValues = [
             'send_on' => $this->getSendOn(),
-            'message' => $this->getMessage(),
+            //'message' => $this->getMessage(),
             'sendToFriend' => $this->isSendToFriend()
         ];
 
