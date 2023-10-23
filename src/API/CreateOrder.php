@@ -62,6 +62,13 @@ class CreateOrder extends APIEnpointAbstract
                     ]);
             }
 
+            // Petit hack pour permettre aux message d'être d'une longueur maximale.
+            if($orderModel->getProductsOrdered()->getGiftModel() !== null &&
+               $orderModel->getProductsOrdered()->getGiftModel()->getMessage() !== null)
+            {
+                $metadata['message'] = json_encode($orderModel->getProductsOrdered()->getGiftModel()->getMessage());
+            }
+
             if(!is_null($orderModel->getDonationOrdered()) && count($orderModel->getDonationOrdered()) > 0) {
                 $metadata['donationOrdered'] = json_encode($orderModel->getDonationOrdered(), JSON_THROW_ON_ERROR);
             }
